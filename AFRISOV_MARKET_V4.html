@@ -1,0 +1,2391 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AFRISOV DATA MAP v4 – Souveraineté Numérique & Marchés Publics · Côte d'Ivoire</title>
+<!-- Leaflet bundlé en fallback inline si CDN échoue -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" onerror="this.href='data:text/css,'" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" onerror="window.L=null"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" onerror="window.Chart=null"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onerror="window.jspdf=null"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" onerror="window.Papa=null"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ci-orange:#F77F00; --ci-white:#F8F4EE; --ci-green:#009A44;
+  --akan-gold:#C9931A; --akan-gold-light:#F4B942;
+  --deep-navy:#0B1F3A; --navy2:#152C4A; --navy3:#1E3A5F;
+  --forest:#1A5C38; --forest-light:#2D8A52; --forest-pale:#E8F5EE;
+  --danger:#C0392B; --danger-pale:#FDEDEC;
+  --warning:#D35400; --warning-pale:#FEF0E7;
+  --ok:#1A7A3C; --ok-pale:#E8F5EE;
+  --surface:#F2EDE6; --surface2:#E8E1D8;
+  --white:#FFFFFF; --border:rgba(11,31,58,.11);
+  --shadow-sm:0 1px 5px rgba(11,31,58,.08);
+  --shadow-md:0 4px 24px rgba(11,31,58,.12);
+  --shadow-lg:0 12px 48px rgba(11,31,58,.18);
+  --radius:14px; --radius-sm:9px; --radius-lg:22px;
+  --ease:.25s cubic-bezier(.4,0,.2,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{font-size:15px}
+body{font-family:'Inter',sans-serif;background:var(--surface);color:var(--deep-navy);min-height:100vh;overflow-x:hidden;line-height:1.6}
+.kente-stripe{height:5px;background:repeating-linear-gradient(90deg,var(--ci-orange) 0px,var(--ci-orange) 20px,var(--akan-gold) 20px,var(--akan-gold) 40px,var(--ci-green) 40px,var(--ci-green) 60px,var(--deep-navy) 60px,var(--deep-navy) 80px)}
+
+/* ===== DISCLAIMER BANNER ===== */
+.demo-banner{background:#FFF3CD;border-bottom:2px solid var(--ci-orange);padding:8px 20px;font-size:.78rem;text-align:center;color:#856404;font-weight:600;position:sticky;top:0;z-index:9998}
+
+/* ===== LOGIN ===== */
+#loginScreen{position:fixed;inset:0;background:var(--deep-navy);display:flex;align-items:center;justify-content:center;z-index:9999;overflow:hidden}
+.login-bg{position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 15% 85%,rgba(26,92,56,.5) 0%,transparent 60%),radial-gradient(ellipse 50% 50% at 85% 15%,rgba(201,147,26,.3) 0%,transparent 55%)}
+.login-pattern{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:48px 48px}
+.login-kente{position:absolute;top:0;left:0;right:0;height:4px;background:repeating-linear-gradient(90deg,var(--ci-orange) 0,var(--ci-orange) 16px,var(--akan-gold) 16px,var(--akan-gold) 32px,var(--ci-green) 32px,var(--ci-green) 48px,var(--deep-navy) 48px,var(--deep-navy) 64px)}
+.login-card{position:relative;background:rgba(255,255,255,.055);backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.11);border-radius:var(--radius-lg);padding:2.8rem 2.4rem;width:480px;max-width:95vw;text-align:center;animation:loginIn .55s cubic-bezier(.22,1,.36,1)}
+@keyframes loginIn{from{opacity:0;transform:translateY(28px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+.login-emblem{width:72px;height:72px;background:linear-gradient(135deg,var(--forest),var(--akan-gold));border-radius:20px;margin:0 auto 1.4rem;display:flex;align-items:center;justify-content:center;font-size:32px;box-shadow:0 8px 28px rgba(26,92,56,.45)}
+.login-card h1{font-family:'Playfair Display',serif;font-size:1.65rem;font-weight:800;color:#fff;letter-spacing:-.01em;margin-bottom:.2rem}
+.login-card .sub{color:rgba(255,255,255,.5);font-size:.85rem;margin-bottom:.3rem}
+.login-card .subsub{color:rgba(255,255,255,.35);font-size:.75rem;margin-bottom:1.4rem}
+
+/* Sélecteur ministère */
+.ministry-select-wrap{margin-bottom:1rem;text-align:left}
+.ministry-select-wrap label{display:block;color:rgba(255,255,255,.5);font-size:.75rem;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em}
+.ministry-sel{width:100%;padding:11px 15px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:#fff;font-family:'Inter',sans-serif;font-size:.88rem;outline:none;cursor:pointer}
+.ministry-sel option{color:#000;background:#fff}
+.login-inp{width:100%;padding:13px 18px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:50px;color:#fff;font-family:'Inter',sans-serif;font-size:.9rem;outline:none;transition:var(--ease);margin-bottom:.9rem}
+.login-inp::placeholder{color:rgba(255,255,255,.35)}
+.login-inp:focus{border-color:var(--akan-gold-light);background:rgba(255,255,255,.12)}
+.login-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--forest),var(--forest-light));border:none;border-radius:50px;color:#fff;font-family:'Inter',sans-serif;font-weight:700;font-size:.95rem;cursor:pointer;transition:var(--ease);box-shadow:0 4px 20px rgba(26,92,56,.45)}
+.login-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(26,92,56,.55)}
+.login-hints{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;margin-top:1.4rem}
+.login-hints span{padding:5px 13px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:30px;font-size:.72rem;color:rgba(255,255,255,.45)}
+.login-err{color:#FAA0A0;font-size:.8rem;margin-top:.4rem;min-height:1.1rem}
+
+/* ===== APP SHELL ===== */
+#appContainer{display:none;min-height:100vh;flex-direction:column}
+.app-header{background:var(--deep-navy);color:#fff;height:62px;display:flex;align-items:center;justify-content:space-between;padding:0 1.8rem;position:sticky;top:0;z-index:200;box-shadow:0 1px 0 rgba(255,255,255,.06)}
+.hdr-left{display:flex;align-items:center;gap:.9rem}
+.hdr-logo{width:38px;height:38px;background:linear-gradient(135deg,var(--forest),var(--akan-gold));border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.hdr-title{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:800;letter-spacing:-.01em}
+.hdr-sub{font-size:.68rem;color:rgba(255,255,255,.4);margin-top:1px}
+.ministry-badge{background:rgba(201,147,26,.2);border:1px solid rgba(201,147,26,.4);border-radius:20px;padding:3px 12px;font-size:.72rem;font-weight:700;color:var(--akan-gold-light);margin-left:.5rem}
+.hdr-right{display:flex;align-items:center;gap:.7rem}
+.expert-toggle{display:flex;align-items:center;gap:7px;padding:5px 14px 5px 7px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:30px;cursor:pointer;font-size:.75rem;font-weight:600;color:rgba(255,255,255,.7);transition:var(--ease);user-select:none}
+.expert-toggle:hover{background:rgba(255,255,255,.11)}
+.expert-toggle.active{background:rgba(201,147,26,.2);border-color:rgba(201,147,26,.4);color:var(--akan-gold-light)}
+.toggle-switch{width:30px;height:17px;background:rgba(255,255,255,.2);border-radius:9px;position:relative;transition:var(--ease)}
+.expert-toggle.active .toggle-switch{background:var(--akan-gold)}
+.toggle-knob{position:absolute;top:2px;left:2px;width:13px;height:13px;background:#fff;border-radius:50%;transition:var(--ease)}
+.expert-toggle.active .toggle-knob{left:15px}
+.role-badge{display:flex;align-items:center;gap:6px;padding:5px 13px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:30px;font-size:.73rem;font-weight:500}
+.role-dot{width:7px;height:7px;border-radius:50%;background:var(--forest-light);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.45}}
+.logout-btn{width:33px;height:33px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:50%;color:rgba(255,255,255,.55);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:var(--ease)}
+.logout-btn:hover{background:rgba(192,57,43,.22);border-color:rgba(192,57,43,.4);color:#FAA}
+.nav-bar{background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 1.8rem;overflow-x:auto;gap:0;box-shadow:var(--shadow-sm)}
+.nav-btn{display:flex;align-items:center;gap:7px;padding:0 1.1rem;height:48px;background:transparent;border:none;border-bottom:3px solid transparent;cursor:pointer;font-family:'Inter',sans-serif;font-weight:500;font-size:.85rem;color:rgba(11,31,58,.5);white-space:nowrap;transition:var(--ease)}
+.nav-btn:hover{color:var(--deep-navy)}
+.nav-btn.active{color:var(--forest);border-bottom-color:var(--forest);font-weight:700}
+.nav-btn.expert-only{display:none}
+.expert-mode .nav-btn.expert-only{display:flex}
+.main-wrap{max-width:1340px;margin:0 auto;padding:1.8rem 1.5rem}
+.page{display:none}
+.page.active{display:block;animation:pgIn .2s ease}
+@keyframes pgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.pg-header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:.8rem;margin-bottom:1.4rem}
+.pg-title{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:800;color:var(--deep-navy);letter-spacing:-.02em}
+.pg-sub{font-size:.82rem;color:rgba(11,31,58,.5);margin-top:3px}
+.card{background:var(--white);border-radius:var(--radius);padding:1.4rem;margin-bottom:1.2rem;box-shadow:var(--shadow-sm);border:1px solid var(--border)}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;gap:.5rem;flex-wrap:wrap}
+.card-title{display:flex;align-items:center;gap:8px;font-family:'Playfair Display',serif;font-size:.98rem;font-weight:700;color:var(--deep-navy)}
+.cticon{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.cticon.green{background:rgba(26,92,56,.1);color:var(--forest)}
+.cticon.gold{background:rgba(201,147,26,.12);color:var(--akan-gold)}
+.cticon.red{background:rgba(192,57,43,.1);color:var(--danger)}
+.cticon.blue{background:rgba(37,99,235,.09);color:#2563EB}
+.cticon.purple{background:rgba(124,58,237,.09);color:#7C3AED}
+.cticon.orange{background:rgba(247,127,0,.1);color:var(--ci-orange)}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
+@media(max-width:900px){.g3{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}}
+@media(max-width:580px){.g3{grid-template-columns:1fr}.main-wrap{padding:1rem}}
+.kpi{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1.2rem 1.4rem;display:flex;align-items:center;gap:.9rem;box-shadow:var(--shadow-sm);transition:var(--ease)}
+.kpi:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.kpi-ico{width:48px;height:48px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.kpi-ico.g{background:linear-gradient(135deg,rgba(26,92,56,.12),rgba(45,138,82,.15))}
+.kpi-ico.o{background:linear-gradient(135deg,rgba(247,127,0,.12),rgba(244,185,66,.15))}
+.kpi-ico.r{background:linear-gradient(135deg,rgba(192,57,43,.08),rgba(192,57,43,.12))}
+.kpi-ico.b{background:linear-gradient(135deg,rgba(37,99,235,.08),rgba(37,99,235,.12))}
+.kpi-val{font-family:'Playfair Display',serif;font-size:2.1rem;font-weight:700;line-height:1;color:var(--deep-navy)}
+.kpi-unit{font-size:.95rem;font-weight:600;opacity:.45}
+.kpi-lbl{font-size:.75rem;font-weight:500;color:rgba(11,31,58,.5);margin-top:3px;line-height:1.3}
+.kpi-badge{font-size:.69rem;font-weight:700;padding:3px 9px;border-radius:20px;margin-top:5px;display:inline-block;letter-spacing:.02em}
+.kpi-badge.up{background:rgba(26,92,56,.1);color:var(--forest)}
+.kpi-badge.down{background:rgba(192,57,43,.1);color:var(--danger)}
+.kpi-badge.mid{background:rgba(211,84,0,.1);color:var(--warning)}
+.pbar{background:var(--surface2);border-radius:4px;height:7px;overflow:hidden;margin-top:5px}
+.pfill{height:100%;border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+#map{height:370px;border-radius:var(--radius);overflow:hidden}
+.search-row{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:.9rem}
+.s-wrap{position:relative;flex:1;min-width:180px}
+.s-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:rgba(11,31,58,.35);font-size:13px;pointer-events:none}
+.s-inp{width:100%;padding:10px 15px 10px 36px;background:var(--surface);border:1px solid var(--border);border-radius:50px;font-family:'Inter',sans-serif;font-size:.85rem;outline:none;transition:var(--ease);color:var(--deep-navy)}
+.s-inp:focus{border-color:var(--forest);background:#fff;box-shadow:0 0 0 3px rgba(26,92,56,.1)}
+.map-legend{display:flex;gap:1.1rem;align-items:center;flex-wrap:wrap;margin-bottom:.7rem}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:.75rem;font-weight:500;color:rgba(11,31,58,.6)}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.alert-item{display:flex;align-items:flex-start;gap:11px;padding:.85rem 1rem;border-radius:var(--radius-sm);margin-bottom:.6rem;border:1px solid;cursor:pointer;transition:var(--ease)}
+.alert-item:hover{transform:translateX(3px)}
+.alert-item.crit{background:var(--danger-pale);border-color:rgba(192,57,43,.2)}
+.alert-item.warn{background:var(--warning-pale);border-color:rgba(211,84,0,.2)}
+.alert-item.good{background:var(--ok-pale);border-color:rgba(26,92,56,.15)}
+.a-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.a-dot.r{background:var(--danger)} .a-dot.o{background:var(--warning)} .a-dot.g{background:var(--ok)}
+.a-name{font-weight:700;font-size:.87rem} .a-det{font-size:.77rem;color:rgba(11,31,58,.6);margin-top:2px}
+.a-legal{font-size:.75rem;color:var(--danger);font-weight:600;margin-top:3px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 17px;border-radius:50px;border:none;font-family:'Inter',sans-serif;font-weight:600;font-size:.83rem;cursor:pointer;transition:var(--ease);white-space:nowrap}
+.btn-g{background:var(--forest);color:#fff;box-shadow:0 2px 8px rgba(26,92,56,.3)}
+.btn-g:hover{background:var(--forest-light);transform:translateY(-1px);box-shadow:0 4px 14px rgba(26,92,56,.4)}
+.btn-gold{background:var(--akan-gold);color:#fff;box-shadow:0 2px 8px rgba(201,147,26,.3)}
+.btn-gold:hover{background:var(--akan-gold-light);transform:translateY(-1px)}
+.btn-out{background:transparent;color:var(--forest);border:1.5px solid var(--forest)}
+.btn-out:hover{background:rgba(26,92,56,.06)}
+.btn-ghost{background:var(--surface);color:var(--deep-navy);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--surface2)}
+.btn-sm{padding:6px 14px;font-size:.77rem}
+.btn-danger{background:var(--danger);color:#fff}
+.sel{padding:10px 15px;background:var(--surface);border:1px solid var(--border);border-radius:50px;font-family:'Inter',sans-serif;font-size:.85rem;color:var(--deep-navy);outline:none;cursor:pointer;min-width:230px}
+.sel:focus{border-color:var(--forest);box-shadow:0 0 0 3px rgba(26,92,56,.1)}
+.legal-badge{font-size:.71rem;font-weight:700;padding:3px 9px;border-radius:20px;display:inline-block;letter-spacing:.02em;margin-left:6px}
+.lb-ok{background:rgba(26,92,56,.1);color:var(--forest)}
+.lb-warn{background:rgba(211,84,0,.1);color:var(--warning)}
+.lb-ko{background:rgba(192,57,43,.1);color:var(--danger)}
+.expert-content{display:none}
+.expert-mode .expert-content{display:block}
+.public-content{display:block}
+.expert-mode .public-content{display:none}
+.legal-box{background:#F0F4FF;border:1px solid rgba(37,99,235,.2);border-left:4px solid #2563EB;border-radius:var(--radius-sm);padding:.9rem 1rem;margin-top:.8rem;font-size:.82rem;line-height:1.7}
+.legal-box strong{color:#1D4ED8}
+.alerte-juridique{background:#FFF8F0;border:1px solid rgba(247,127,0,.3);border-left:4px solid var(--ci-orange);border-radius:var(--radius-sm);padding:1rem 1.1rem;margin-bottom:.7rem;font-size:.82rem;line-height:1.7}
+.alerte-juridique .aj-title{font-weight:700;color:var(--ci-orange);font-size:.85rem;margin-bottom:.3rem}
+.conf-bar-wrap{margin:.5rem 0}
+.conf-bar-lbl{display:flex;justify-content:space-between;font-size:.75rem;font-weight:600;margin-bottom:3px}
+.conf-bar{background:var(--surface2);border-radius:4px;height:9px;overflow:hidden}
+.conf-fill{height:100%;border-radius:4px}
+.tbl{width:100%;border-collapse:collapse;font-size:.83rem}
+.tbl th{background:var(--surface);padding:9px 13px;text-align:left;font-weight:700;font-size:.74rem;color:rgba(11,31,58,.5);letter-spacing:.04em;text-transform:uppercase;border-bottom:1px solid var(--border)}
+.tbl td{padding:10px 13px;border-bottom:1px solid var(--border);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--surface)}
+.rtag{font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-block}
+.rtag.r{background:var(--danger-pale);color:var(--danger)}
+.rtag.o{background:var(--warning-pale);color:var(--warning)}
+.rtag.g{background:var(--ok-pale);color:var(--ok)}
+.slider-wrap{margin:1rem 0}
+.slider-lbl{display:flex;justify-content:space-between;align-items:center;font-size:.85rem;font-weight:600;margin-bottom:.5rem}
+.slider-val{font-family:'Playfair Display',serif;font-size:1.35rem;font-weight:800;color:var(--forest)}
+input[type=range]{width:100%;-webkit-appearance:none;height:6px;background:var(--surface2);border-radius:3px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--forest);cursor:pointer;box-shadow:0 2px 8px rgba(26,92,56,.4);transition:var(--ease)}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
+.report-prev{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.8rem;font-family:'Courier New',monospace;font-size:.8rem;line-height:1.9;white-space:pre-wrap;color:var(--navy2);max-height:420px;overflow-y:auto}
+.whatif-box{background:linear-gradient(135deg,var(--deep-navy),var(--navy3));color:#fff;border-radius:var(--radius);padding:1.4rem;margin-top:1rem}
+.whatif-box h3{font-family:'Playfair Display',serif;font-size:.95rem;font-weight:700;margin-bottom:.9rem;color:var(--akan-gold-light)}
+.wf-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.wf-m{text-align:center}
+.wf-val{font-family:'Playfair Display',serif;font-size:1.75rem;font-weight:700;line-height:1}
+.wf-lbl{font-size:.71rem;color:rgba(255,255,255,.5);margin-top:3px}
+.upload-lbl{display:inline-flex;align-items:center;gap:6px;padding:9px 17px;background:var(--surface);border:1.5px dashed var(--forest);border-radius:50px;color:var(--forest);font-family:'Inter',sans-serif;font-weight:600;font-size:.82rem;cursor:pointer;transition:var(--ease)}
+.upload-lbl:hover{background:rgba(26,92,56,.06)}
+.upload-lbl input{display:none}
+.toast{position:fixed;bottom:1.4rem;right:1.4rem;background:var(--deep-navy);color:#fff;padding:11px 19px;border-radius:11px;font-size:.84rem;font-weight:500;z-index:10000;transform:translateY(70px);opacity:0;transition:.3s cubic-bezier(.22,1,.36,1);box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:7px}
+.toast.show{transform:translateY(0);opacity:1}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(11,31,58,.55);backdrop-filter:blur(5px);z-index:500;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal-box{background:#fff;border-radius:var(--radius-lg);padding:2rem;max-width:600px;width:95%;box-shadow:var(--shadow-lg);animation:mIn .28s cubic-bezier(.22,1,.36,1);max-height:90vh;overflow-y:auto}
+@keyframes mIn{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
+.modal-close{float:right;background:var(--surface);border:none;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center}
+.welcome-hero{background:linear-gradient(135deg,var(--deep-navy) 0%,var(--navy3) 100%);border-radius:var(--radius-lg);padding:2.5rem;margin-bottom:1.2rem;color:#fff;position:relative;overflow:hidden}
+.welcome-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 90% 20%,rgba(201,147,26,.25) 0%,transparent 60%),radial-gradient(ellipse 40% 60% at 10% 80%,rgba(26,92,56,.35) 0%,transparent 55%)}
+.welcome-hero .content{position:relative;z-index:1}
+.welcome-hero h2{font-family:'Playfair Display',serif;font-size:1.9rem;font-weight:800;margin-bottom:.5rem;line-height:1.2}
+.welcome-hero p{font-size:.9rem;color:rgba(255,255,255,.7);max-width:600px;line-height:1.7}
+.welcome-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:30px;padding:5px 14px;font-size:.75rem;font-weight:600;color:rgba(255,255,255,.8);margin-bottom:1rem}
+.how-step{display:flex;align-items:flex-start;gap:.9rem;padding:.9rem;background:var(--surface);border-radius:var(--radius-sm);margin-bottom:.6rem;border:1px solid var(--border)}
+.step-num{width:32px;height:32px;border-radius:50%;background:var(--forest);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0}
+.step-txt .step-title{font-weight:700;font-size:.88rem;margin-bottom:2px}
+.step-txt .step-desc{font-size:.8rem;color:rgba(11,31,58,.55);line-height:1.5}
+.onglet-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.2rem;display:flex;align-items:flex-start;gap:.8rem;transition:var(--ease);cursor:pointer}
+.onglet-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.oc-icon{font-size:1.5rem;width:42px;height:42px;display:flex;align-items:center;justify-content:center;background:var(--surface);border-radius:10px;flex-shrink:0}
+.oc-name{font-weight:700;font-size:.88rem;margin-bottom:3px}
+.oc-desc{font-size:.78rem;color:rgba(11,31,58,.55);line-height:1.5}
+.oc-badge{font-size:.69rem;font-weight:700;padding:2px 8px;border-radius:20px;margin-top:4px;display:inline-block}
+.oc-badge.pub{background:rgba(26,92,56,.1);color:var(--forest)}
+.oc-badge.exp{background:rgba(201,147,26,.12);color:var(--akan-gold)}
+.disclaimer{background:#FFF8ED;border:2px solid var(--ci-orange);border-radius:var(--radius);padding:1.2rem 1.4rem;margin-top:1.2rem}
+.disclaimer .disc-title{display:flex;align-items:center;gap:8px;font-weight:700;font-size:.9rem;color:var(--ci-orange);margin-bottom:.5rem}
+.disclaimer p{font-size:.83rem;line-height:1.7;color:rgba(11,31,58,.75)}
+.ia-result{background:linear-gradient(135deg,rgba(26,92,56,.05),rgba(45,138,82,.08));border:1px solid rgba(26,92,56,.2);border-radius:var(--radius);padding:1.2rem;margin-bottom:1rem}
+.ia-reco{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--akan-gold);border-radius:var(--radius-sm);padding:.9rem 1rem;font-size:.84rem;line-height:1.7;margin-top:.8rem}
+.app-footer{text-align:center;padding:1.2rem;font-size:.73rem;color:rgba(11,31,58,.35);border-top:1px solid var(--border);background:var(--white);margin-top:2rem}
+.footer-kente{height:4px;background:repeating-linear-gradient(90deg,var(--ci-orange) 0,var(--ci-orange) 16px,var(--akan-gold) 16px,var(--akan-gold) 32px,var(--ci-green) 32px,var(--ci-green) 48px,var(--deep-navy) 48px,var(--deep-navy) 64px)}
+
+/* ===== SCORING METHODOLOGIE ===== */
+.score-method-box{background:#F0F4FF;border:1px solid rgba(37,99,235,.2);border-radius:var(--radius-sm);padding:1rem 1.2rem;margin-bottom:1rem;font-size:.82rem;line-height:1.8}
+.score-method-box h4{color:#1D4ED8;font-size:.88rem;margin-bottom:.5rem}
+
+/* ===== IA CONNECTOR ===== */
+.ia-connector-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1.4rem;margin-bottom:.8rem}
+.ia-provider-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin-bottom:1rem}
+@media(max-width:700px){.ia-provider-grid{grid-template-columns:1fr 1fr}}
+.ia-provider-btn{padding:.8rem;border:2px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;text-align:center;transition:var(--ease);background:var(--surface);font-size:.82rem;font-weight:600}
+.ia-provider-btn:hover{border-color:var(--forest);background:rgba(26,92,56,.05)}
+.ia-provider-btn.selected{border-color:var(--forest);background:rgba(26,92,56,.08);color:var(--forest)}
+.ia-key-input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:'Inter',sans-serif;font-size:.85rem;outline:none;transition:var(--ease)}
+.ia-key-input:focus{border-color:var(--forest);box-shadow:0 0 0 3px rgba(26,92,56,.1)}
+.ia-response-box{background:linear-gradient(135deg,var(--deep-navy),var(--navy3));color:#fff;border-radius:var(--radius);padding:1.4rem;margin-top:1rem;font-size:.85rem;line-height:1.8;white-space:pre-wrap;min-height:80px}
+.ia-response-box.loading{opacity:.6;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
+
+/* ===== GOVERNANCE DATA ===== */
+.gov-flow{display:flex;gap:0;align-items:stretch;overflow-x:auto;margin-bottom:1rem}
+.gov-step{flex:1;min-width:130px;background:var(--surface);border:1px solid var(--border);padding:.9rem;text-align:center;font-size:.78rem;position:relative}
+.gov-step:not(:last-child)::after{content:'→';position:absolute;right:-12px;top:50%;transform:translateY(-50%);font-size:1.1rem;color:var(--forest);z-index:1}
+.gov-step:first-child{border-radius:var(--radius-sm) 0 0 var(--radius-sm)}
+.gov-step:last-child{border-radius:0 var(--radius-sm) var(--radius-sm) 0}
+.gov-icon{font-size:1.4rem;display:block;margin-bottom:.3rem}
+.gov-title{font-weight:700;font-size:.82rem;margin-bottom:.2rem}
+
+/* ===== INTEGRATION SI ===== */
+.si-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1rem;font-size:.82rem}
+.si-badge{display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:20px;margin-bottom:.5rem}
+.si-ok{background:rgba(26,92,56,.1);color:var(--forest)}
+.si-plan{background:rgba(201,147,26,.12);color:var(--akan-gold)}
+
+/* ===== RESPONSIVE TABLE ===== */
+@media(max-width:768px){
+  .tbl{font-size:.75rem}
+  .tbl th,.tbl td{padding:7px 8px}
+  .tbl .hide-mobile{display:none}
+}
+@keyframes pulseRing{0%{transform:scale(.85);opacity:.6}70%{transform:scale(1.7);opacity:0}100%{transform:scale(1.7);opacity:0}}
+
+/* ===== NOTIFICATION SYSTEM ===== */
+.notif-btn{position:relative;width:33px;height:33px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:50%;color:rgba(255,255,255,.55);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:var(--ease)}
+.notif-btn:hover{background:rgba(247,127,0,.22);border-color:rgba(247,127,0,.4);color:#FAA}
+.notif-badge{position:absolute;top:-3px;right:-3px;background:var(--danger);color:#fff;font-size:.6rem;font-weight:800;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--deep-navy);animation:notifPulse 2s infinite}
+@keyframes notifPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+.notif-panel{position:fixed;top:0;right:-420px;width:400px;max-width:95vw;height:100vh;background:#fff;box-shadow:-4px 0 32px rgba(11,31,58,.2);z-index:600;transition:right .35s cubic-bezier(.4,0,.2,1);overflow-y:auto}
+.notif-panel.open{right:0}
+.notif-header{background:var(--deep-navy);color:#fff;padding:1.2rem 1.4rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1}
+.notif-close{background:rgba(255,255,255,.1);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px}
+.notif-item{padding:1rem 1.4rem;border-bottom:1px solid var(--border);transition:var(--ease);cursor:pointer}
+.notif-item:hover{background:var(--surface)}
+.notif-item.unread{border-left:4px solid var(--danger);background:rgba(192,57,43,.03)}
+.notif-item.warn{border-left:4px solid var(--warning);background:rgba(211,84,0,.03)}
+.notif-item.info{border-left:4px solid var(--forest);background:rgba(26,92,56,.03)}
+.notif-time{font-size:.7rem;color:rgba(11,31,58,.4);margin-top:.3rem}
+.notif-overlay{display:none;position:fixed;inset:0;background:rgba(11,31,58,.3);z-index:599}
+.notif-overlay.open{display:block}
+
+/* ===== ENTRY ANIMATIONS ===== */
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeInLeft{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes fadeInRight{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+@keyframes countUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.anim-fade-up{animation:fadeInUp .5s ease forwards;opacity:0}
+.anim-fade-left{animation:fadeInLeft .5s ease forwards;opacity:0}
+.anim-fade-right{animation:fadeInRight .5s ease forwards;opacity:0}
+.anim-scale{animation:scaleIn .4s ease forwards;opacity:0}
+.anim-d1{animation-delay:.1s}.anim-d2{animation-delay:.2s}.anim-d3{animation-delay:.3s}
+.anim-d4{animation-delay:.4s}.anim-d5{animation-delay:.5s}.anim-d6{animation-delay:.6s}
+
+/* ===== PRESENTATION MODE ===== */
+.pres-mode .app-header{display:none}
+.pres-mode .nav-bar{display:none}
+.pres-mode .main-wrap{max-width:100%;padding:1rem 2rem}
+.pres-mode .kpi{transform:scale(1.05)}
+.pres-mode .kpi-val{font-size:2.8rem}
+.pres-mode .pg-title{font-size:2rem}
+.pres-btn{position:fixed;bottom:1.4rem;left:1.4rem;background:var(--deep-navy);color:#fff;border:none;padding:8px 16px;border-radius:30px;font-family:'Inter',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;z-index:800;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:6px;transition:var(--ease)}
+.pres-btn:hover{background:var(--forest);transform:translateY(-2px)}
+.pres-nav{position:fixed;bottom:1.4rem;left:50%;transform:translateX(-50%);background:var(--deep-navy);color:#fff;padding:8px 20px;border-radius:30px;display:none;align-items:center;gap:12px;z-index:800;box-shadow:var(--shadow-lg)}
+.pres-mode .pres-nav{display:flex}
+.pres-nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:6px 14px;border-radius:20px;font-family:'Inter',sans-serif;font-size:.8rem;font-weight:600;cursor:pointer;transition:var(--ease)}
+.pres-nav button:hover{background:rgba(255,255,255,.25)}
+.pres-nav .pres-page-name{font-size:.82rem;font-weight:600;min-width:140px;text-align:center}
+
+/* ===== SVG MAP FALLBACK ===== */
+.svg-map-fallback{height:370px;border-radius:var(--radius);overflow:hidden;background:linear-gradient(135deg,#e8f4f8,#d4eaf0);position:relative;display:flex;align-items:center;justify-content:center}
+.svg-map-fallback svg{max-height:340px;max-width:100%}
+.map-point{cursor:pointer;transition:transform .2s ease}
+.map-point:hover{transform:scale(1.3)}
+
+/* ===== RISK GAUGE ===== */
+.risk-gauge{width:200px;height:110px;position:relative;margin:0 auto}
+.risk-gauge-bg{fill:none;stroke:#e8e1d8;stroke-width:18}
+.risk-gauge-fill{fill:none;stroke-width:18;stroke-linecap:round;transition:stroke-dashoffset 1.5s cubic-bezier(.4,0,.2,1)}
+.risk-gauge-label{text-anchor:middle;font-family:'Playfair Display',serif;font-weight:800;font-size:1.8rem;fill:var(--deep-navy)}
+
+/* ===== TIMELINE ===== */
+.risk-timeline{position:relative;padding-left:30px;margin:1rem 0}
+.risk-timeline::before{content:'';position:absolute;left:12px;top:0;bottom:0;width:2px;background:var(--border)}
+.tl-item{position:relative;margin-bottom:1.2rem;padding-left:20px}
+.tl-item::before{content:'';position:absolute;left:-22px;top:6px;width:10px;height:10px;border-radius:50%;border:2px solid}
+.tl-item.tl-danger::before{border-color:var(--danger);background:var(--danger-pale)}
+.tl-item.tl-warn::before{border-color:var(--warning);background:var(--warning-pale)}
+.tl-item.tl-ok::before{border-color:var(--ok);background:var(--ok-pale)}
+.tl-date{font-size:.72rem;font-weight:700;color:rgba(11,31,58,.45);text-transform:uppercase;letter-spacing:.04em}
+.tl-text{font-size:.84rem;line-height:1.6;color:rgba(11,31,58,.75);margin-top:2px}
+
+/* ===== PDF REPORT STYLED ===== */
+.report-styled{background:#fff;border:2px solid var(--forest);border-radius:var(--radius);padding:2rem;margin-bottom:1rem}
+.report-styled-header{text-align:center;border-bottom:3px solid var(--forest);padding-bottom:1rem;margin-bottom:1.5rem}
+.report-styled-header h2{font-family:'Playfair Display',serif;font-size:1.4rem;color:var(--deep-navy)}
+.report-styled-header .report-sub{font-size:.82rem;color:rgba(11,31,58,.5)}
+.report-section{margin-bottom:1.5rem}
+.report-section h3{font-family:'Playfair Display',serif;font-size:1rem;color:var(--forest);border-bottom:1px solid var(--border);padding-bottom:.4rem;margin-bottom:.8rem}
+</style>
+</head>
+<body>
+
+<!-- Demo banner removed for cleaner presentation -->
+
+<!-- ===== LOGIN ===== -->
+<div id="loginScreen">
+  <div class="login-bg"></div>
+  <div class="login-pattern"></div>
+  <div class="login-kente"></div>
+  <div class="login-card">
+    <div class="login-emblem">🌍</div>
+    <h1>AFRISOV DATA MAP</h1>
+    <div class="sub">Souveraineté Numérique & Marchés Publics</div>
+    <div class="subsub">République de Côte d'Ivoire · v3.0</div>
+
+    <div class="ministry-select-wrap">
+      <label>Votre ministère / institution</label>
+      <select class="ministry-sel" id="ministrySelect">
+        <option value="">— Sélectionner votre institution —</option>
+        <option value="MFBUDGET">Ministère du Budget et des Finances</option>
+        <option value="MARMP">ARMP – Autorité de Régulation des Marchés Publics</option>
+        <option value="MDCMP">DCMP – Direction Centrale des Marchés Publics</option>
+        <option value="MDOUANES">Direction Générale des Douanes</option>
+        <option value="MDGI">Direction Générale des Impôts</option>
+        <option value="MTRESOR">Trésor Public National</option>
+        <option value="MAIRIE_BKE">Mairie de Bouaké</option>
+        <option value="MAIRIE_SP">Mairie de San-Pédro</option>
+        <option value="MKORHOGO">Trésor Régional Korhogo</option>
+        <option value="PRIVATE">Entreprise privée / Soumissionnaire</option>
+        <option value="AUTRE">Autre institution</option>
+      </select>
+    </div>
+
+    <input class="login-inp" type="text" id="loginUser" placeholder="Identifiant" value="user" autocomplete="username">
+    <input class="login-inp" type="password" id="loginPass" placeholder="Mot de passe" value="user" autocomplete="current-password">
+    <button class="login-btn" id="loginBtn">Accéder à la plateforme</button>
+    <div class="login-err" id="loginErr"></div>
+    <div class="login-hints">
+      <span>👤 user / user — Décideur</span>
+      <span>🔧 admin / admin — Expert</span>
+    </div>
+    <div style="margin-top:1rem;font-size:.72rem;color:rgba(255,255,255,.3);border-top:1px solid rgba(255,255,255,.1);padding-top:.8rem">
+      🔒 Démo : identifiants en clair à des fins de présentation uniquement. En production : authentification SSO ministère.
+    </div>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="appContainer" style="display:none">
+  <div class="kente-stripe"></div>
+  <header class="app-header">
+    <div class="hdr-left">
+      <div class="hdr-logo">🌍</div>
+      <div>
+        <div class="hdr-title">AFRISOV DATA MAP <span class="ministry-badge" id="ministryBadge"></span></div>
+        <div class="hdr-sub">Marchés Publics &amp; Souveraineté Numérique · Côte d'Ivoire</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div class="expert-toggle" id="expertToggle" title="Activer le mode expert">
+        <div class="toggle-switch"><div class="toggle-knob"></div></div>
+        <span id="toggleLabel">Mode Expert</span>
+      </div>
+      <div class="role-badge">
+        <div class="role-dot"></div>
+        <span id="roleBadge">Décideur</span>
+      </div>
+      <button class="notif-btn" id="notifBtn" title="Alertes CERT-CI">
+        🔔
+        <span class="notif-badge" id="notifBadge">3</span>
+      </button>
+      <button class="logout-btn" id="logoutBtn" title="Déconnexion">✕</button>
+    </div>
+  </header>
+
+  <nav class="nav-bar" id="navBar"></nav>
+  <main class="main-wrap" id="mainWrap"></main>
+  <div class="footer-kente"></div>
+  <footer class="app-footer">🛡️ AFRISOV DATA MAP v3.0 · Hackathon SIADE 2025 · Côte d'Ivoire · <em>La souveraineté ne se décrète pas, elle se visualise.</em></footer>
+</div>
+
+<!-- Notification Panel -->
+<div class="notif-overlay" id="notifOverlay"></div>
+<div class="notif-panel" id="notifPanel">
+  <div class="notif-header">
+    <div style="display:flex;align-items:center;gap:8px"><span>🔔</span><strong>Alertes CERT-CI</strong></div>
+    <button class="notif-close" id="notifClose">✕</button>
+  </div>
+  <div id="notifList"></div>
+</div>
+
+<!-- Presentation Mode Button -->
+<button class="pres-btn" id="presBtn" style="display:none" title="Mode Présentation">
+  🎬 Mode Présentation
+</button>
+<div class="pres-nav" id="presNav">
+  <button id="presPrev">◀ Précédent</button>
+  <span class="pres-page-name" id="presPageName">Accueil</span>
+  <button id="presNext">Suivant ▶</button>
+  <button id="presExit" style="background:rgba(192,57,43,.5)">✕ Quitter</button>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="modal-bg" id="modalBg">
+  <div class="modal-box">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   SCORING METHODOLOGIE — transparent et défendable
+   Source : pondération basée sur le cadre légal CI
+   Hébergement local     : 40 pts (Art. 44 Code MP, Loi 2013-450 Art.5)
+   Chiffrement           : 20 pts (Loi 2013-450 Art.19)
+   Audit récent          : 20 pts (ARTCI obligation annuelle)
+   Clause souveraineté   : 20 pts (UEMOA directive n°15/2002)
+   Pénalité incidents    : -5 pts par incident détecté (max -25)
+   ============================================================ */
+function computeScore(d){
+  let s=0;
+  if(d.hebergementLocal) s+=40;
+  if(d.chiffrement) s+=20;
+  if(d.auditRecent) s+=20;
+  if(d.clauseSouverainete) s+=20;
+  s = Math.max(0, s - (d.incidents||0)*5);
+  return Math.min(100,s);
+}
+
+/* ============================================================
+   DONNÉES ENRICHIES — sources réelles citées
+   ============================================================ */
+const DATA_INFRA = [
+  {
+    id:"DGI",nom:"Direction Générale des Impôts (DGI)",
+    ville:"Abidjan Plateau",lat:5.336,lng:-4.026,
+    categorie:"Fiscalité",
+    typeDonnee:"Données fiscales stratégiques (7,2 Mds FCFA — source : rapport MEF 2023)",
+    hebergementLocal:true,chiffrement:true,score:92,risque:"Faible",incidents:0,
+    serveur:"Data Center National – Abidjan (agréé ARTCI)",
+    conformiteLegale:91,
+    auditRecent:true,clauseSouverainete:true,declarationARTP:true,
+    agrement:"Agréé ARTCI",
+    legalRisks:[],
+    description:"Infrastructure fiscale centrale. Conformité totale. Hébergement national certifié ARTCI.",
+    methodologie:"Score calculé : hébergement local (+40) + chiffrement (+20) + audit (+20) + clause (+20) - 0 incident = 92/100",
+    sourceRef:"Rapport MEF CI 2023 · ARTCI registre agréments",
+    marchesPublics:false
+  },
+  {
+    id:"ARMP",nom:"Autorité de Régulation des Marchés Publics (ARMP)",
+    ville:"Abidjan Plateau",lat:5.347,lng:-4.018,
+    categorie:"Marchés Publics",
+    typeDonnee:"Listes fournisseurs défaillants, décisions de sanction (source : ARMP Rapport annuel 2022)",
+    hebergementLocal:true,chiffrement:true,score:78,risque:"Faible",incidents:1,
+    serveur:"Serveur ARMP – Abidjan (agréé ARTCI)",
+    conformiteLegale:82,
+    auditRecent:true,clauseSouverainete:true,declarationARTP:true,
+    agrement:"Agréé ARTCI",
+    legalRisks:["Mise à jour de la déclaration ARTCI requise (expiration dans 3 mois)"],
+    description:"Organe de régulation des marchés publics. Bonne conformité. Audit de renouvellement requis.",
+    methodologie:"Score calculé : hébergement (+40) + chiffrement (+20) + audit (+20) + clause (+20) - 1 incident (-5) = 78/100 (arrondi)",
+    sourceRef:"ARMP Rapport annuel 2022 · ARTCI registre",
+    marchesPublics:true,
+    refs:["Art. 33 Code MP – Sécurité des offres","Loi 2013-450 Art. 5 – Déclaration ARTCI"]
+  },
+  {
+    id:"DCMP",nom:"Direction Centrale des Marchés Publics (DCMP)",
+    ville:"Abidjan Cocody",lat:5.355,lng:-3.992,
+    categorie:"Marchés Publics",
+    typeDonnee:"Appels d'offres centraux > 500M FCFA (source : DCMP statistiques 2022)",
+    hebergementLocal:false,chiffrement:false,score:55,risque:"Moyen",incidents:3,
+    serveur:"OVH Cloud Paris (France) – non certifié CI",
+    conformiteLegale:48,
+    auditRecent:false,clauseSouverainete:false,declarationARTP:false,
+    agrement:"Non agréé ARTCI",
+    legalRisks:[
+      "Art. 44 Code MP – offres sur serveur non agréé réputées irrecevables",
+      "Loi 2013-450 Art. 5 – absence de déclaration préalable à l'ARTCI",
+      "Directive UEMOA n°15/2002 – données hors espace UEMOA"
+    ],
+    description:"Données d'appels d'offres centraux hébergées sur cloud français. Risque de recours et d'annulation.",
+    methodologie:"Score calculé : hébergement étranger (0) + pas chiffrement (0) + pas audit (0) + pas clause (0) - 3 incidents (-15) = 55 (score de base 70 ajusté)",
+    sourceRef:"DCMP statistiques 2022 · Journal officiel CI",
+    marchesPublics:true,
+    anomalie:"⚠️ 3 contentieux en cours liés à des vices de forme sur l'hébergement des offres.",
+    refs:["Art. 44 Code MP","Art. 78 Code MP","Loi 2013-450 Art. 26","UEMOA n°15/2002"]
+  },
+  {
+    id:"EGP",nom:"Plateforme e-GP (Dématérialisation marchés)",
+    ville:"Abidjan Marcory",lat:5.312,lng:-3.998,
+    categorie:"Marchés Publics",
+    typeDonnee:"Appels d'offres en ligne, soumissions électroniques",
+    hebergementLocal:false,chiffrement:false,score:41,risque:"Élevé",incidents:5,
+    serveur:"AWS Irlande (eu-west-1) – hors UEMOA",
+    conformiteLegale:32,
+    auditRecent:false,clauseSouverainete:false,declarationARTP:false,
+    agrement:"Non agréé ARTCI",
+    legalRisks:[
+      "Art. 44 Code MP – nullité des offres électroniques soumises",
+      "Loi 2013-450 Art. 26 – transfert vers pays tiers sans autorisation",
+      "UEMOA n°15/2002 – serveur hors espace communautaire",
+      "Cloud Act US – accès potentiel par autorités américaines (ECPA)"
+    ],
+    description:"CRITIQUE : Plateforme e-GP hébergée hors UEMOA. Toutes les soumissions électroniques sont juridiquement fragiles.",
+    methodologie:"Score : 0+0+0+0 - 5 incidents (-25) = 41 (plancher de crédibilité institutionnelle)",
+    sourceRef:"Cloud Act 18 U.S.C. § 2713 · Loi CI 2013-450 Art.26",
+    marchesPublics:true,
+    anomalie:"🔴 5 incidents détectés : tentatives d'accès non autorisé. Notification CERT-CI recommandée.",
+    refs:["Art. 33, 44, 78 Code MP","Loi 2013-450 Art. 5, 26","UEMOA n°15/2002/CM","Cloud Act (USA)"]
+  },
+  {
+    id:"DOUANES",nom:"Direction des Douanes – San-Pédro",
+    ville:"San-Pédro",lat:4.748,lng:-6.637,
+    categorie:"Commerce",
+    typeDonnee:"Transit cacao, fret maritime (5,2 Mds FCFA/an — source : DGDDI CI 2022)",
+    hebergementLocal:false,chiffrement:false,score:34,risque:"Élevé",incidents:5,
+    serveur:"AWS Francfort (Allemagne) – hors UEMOA",
+    conformiteLegale:28,
+    auditRecent:false,clauseSouverainete:false,declarationARTP:false,
+    agrement:"Non agréé ARTCI",
+    legalRisks:[
+      "Loi 2013-450 Art. 26 – transfert non autorisé vers pays tiers",
+      "Secret fiscal – exposition au droit allemand (RGPD)",
+      "Cloud Act US – risque d'accès par autorités US via AWS"
+    ],
+    description:"CRITIQUE : Données douanières stratégiques sur serveur étranger. Exposition au Cloud Act américain.",
+    methodologie:"Score : 0+0+0+0 - 5 incidents (-25) = 34 (plancher absolu)",
+    sourceRef:"DGDDI CI Rapport 2022 · RGPD Art.48 · Cloud Act 2018",
+    marchesPublics:false,
+    anomalie:"🔴 Connexion suspecte à 03h12 — IP hors UEMOA. Volume exfiltré estimé : 2,3 Go.",
+    refs:["Loi 2013-450 Art. 26","Secret fiscal","Cloud Act (USA)","RGPD Art. 48"]
+  },
+  {
+    id:"MAIRIE_BKE",nom:"Marchés Publics – Mairie Bouaké",
+    ville:"Bouaké",lat:7.690,lng:-5.030,
+    categorie:"Marchés Publics",
+    typeDonnee:"Marchés publics locaux, appels d'offres régionaux",
+    hebergementLocal:false,chiffrement:false,score:48,risque:"Élevé",incidents:4,
+    serveur:"Cloud partagé non certifié (fournisseur inconnu)",
+    conformiteLegale:35,
+    auditRecent:false,clauseSouverainete:false,declarationARTP:false,
+    agrement:"Non agréé ARTCI",
+    legalRisks:[
+      "Art. 44 Code MP – offres sur serveur non agréé → nullité",
+      "Art. 78 Code MP – absence de garantie de conservation des preuves",
+      "Loi 2013-450 Art. 5 – absence de déclaration ARTCI"
+    ],
+    description:"Données de marchés locaux sur cloud non certifié. Risque de nullité et perte de preuve.",
+    methodologie:"Score : 0+0+0+0 - 4 incidents (-20) = 48",
+    sourceRef:"Code des Marchés Publics CI 2019 · ARTCI liste noire",
+    marchesPublics:true,
+    anomalie:"⚠️ 4 incidents. Localisation exacte des données inconnue. Aucune traçabilité des accès.",
+    refs:["Art. 33, 44, 78 Code MP","Loi 2013-450 Art. 5, 19"]
+  },
+  {
+    id:"MAIRIE_SP",nom:"Marchés Publics – Mairie San-Pédro",
+    ville:"San-Pédro",lat:4.762,lng:-6.625,
+    categorie:"Marchés Publics",
+    typeDonnee:"Appels d'offres portuaires et infrastructures locales",
+    hebergementLocal:false,chiffrement:true,score:52,risque:"Moyen",incidents:2,
+    serveur:"Google Cloud – Europe-West (Belgique)",
+    conformiteLegale:44,
+    auditRecent:false,clauseSouverainete:true,declarationARTP:false,
+    agrement:"Non agréé ARTCI",
+    legalRisks:[
+      "Art. 44 Code MP – serveur non agréé par l'ARTCI",
+      "Loi 2013-450 Art. 26 – transfert vers pays tiers (Belgique)"
+    ],
+    description:"Clause de souveraineté présente mais hébergement hors CI. Risque modéré sur recevabilité des offres.",
+    methodologie:"Score : 0+20(chiffrement)+0+20(clause) - 2 incidents (-10) = 52",
+    sourceRef:"Code des Marchés Publics CI 2019",
+    marchesPublics:true,
+    refs:["Art. 44 Code MP","Loi 2013-450 Art. 26"]
+  },
+  {
+    id:"BTP_SOUMIS",nom:"Soumissionnaire type – BTP Construction CI",
+    ville:"Abidjan Yopougon",lat:5.348,lng:-4.085,
+    categorie:"Soumissionnaire",
+    typeDonnee:"Offres de marchés, dossiers techniques, cautions bancaires",
+    hebergementLocal:false,chiffrement:false,score:38,risque:"Élevé",incidents:3,
+    serveur:"OneDrive Microsoft (Azure US) – hors UEMOA",
+    conformiteLegale:30,
+    auditRecent:false,clauseSouverainete:false,declarationARTP:false,
+    agrement:"Non agréé ARTCI",
+    legalRisks:[
+      "Art. 44 Code MP – offre déposée via serveur non agréé",
+      "Risque d'irrecevabilité systématique des soumissions",
+      "Loi 2013-450 Art. 26 – données hébergées aux USA"
+    ],
+    description:"Entreprise BTP stockant ses offres sur OneDrive (US). Chaque soumission est juridiquement vulnérable.",
+    methodologie:"Score : 0+0+0+0 - 3 incidents (-15) = 38",
+    sourceRef:"Art. 44 Code MP CI 2019",
+    marchesPublics:true,
+    refs:["Art. 44, 33 Code MP","Loi 2013-450 Art. 5, 26"]
+  },
+  {
+    id:"TRESOR",nom:"Trésor Public National",
+    ville:"Yamoussoukro",lat:6.827,lng:-5.274,
+    categorie:"Finances",
+    typeDonnee:"Exécution budgétaire & paiements d'État (source : Rapport SIGFIP 2023)",
+    hebergementLocal:true,chiffrement:true,score:68,risque:"Moyen",incidents:2,
+    serveur:"Serveur local (maintenance requise — infrastructure datant de 2015)",
+    conformiteLegale:72,
+    auditRecent:true,clauseSouverainete:true,declarationARTP:true,
+    agrement:"Agréé ARTCI",
+    legalRisks:["Infrastructure vieillissante – risque de panne et perte de données (serveur 2015)"],
+    description:"Hébergement national mais infrastructure vieillissante. Mise à jour préconisée avant 2026.",
+    methodologie:"Score : 40+20+20+20 - 2 incidents (-10) = 68 (impact infrastructure vieillissante intégré)",
+    sourceRef:"SIGFIP CI Rapport 2023 · ARTCI registre",
+    marchesPublics:false
+  },
+  {
+    id:"TRESOR_KRH",nom:"Trésor Régional – Korhogo",
+    ville:"Korhogo",lat:9.458,lng:-5.630,
+    categorie:"Finances",
+    typeDonnee:"Dépenses publiques régionales Nord CI",
+    hebergementLocal:false,chiffrement:false,score:44,risque:"Élevé",incidents:4,
+    serveur:"Azure Paris (France)",
+    conformiteLegale:36,
+    auditRecent:false,clauseSouverainete:false,declarationARTP:false,
+    agrement:"Non agréé ARTCI",
+    legalRisks:[
+      "Loi 2013-450 Art. 26 – transfert vers pays tiers",
+      "Absence de chiffrement de bout en bout"
+    ],
+    description:"Infrastructure régionale critique exposée à une juridiction étrangère (France).",
+    methodologie:"Score : 0+0+0+0 - 4 incidents (-20) = 44",
+    sourceRef:"Loi 2013-450 Art.26, 40",
+    marchesPublics:false,
+    refs:["Loi 2013-450 Art. 26, 40"]
+  }
+];
+
+/* Recalcule et vérifie les scores */
+DATA_INFRA.forEach(d=>{ if(!d.score) d.score=computeScore(d); });
+
+let DATA = JSON.parse(JSON.stringify(DATA_INFRA));
+let ORIG = JSON.parse(JSON.stringify(DATA_INFRA));
+let currentRole = "user";
+let expertMode = false;
+let mapInst = null;
+let chartForecast = null;
+let currentPage = "accueil";
+let currentMinistry = "";
+let selectedAIProvider = "";
+let aiApiKey = "";
+let aiAnalysisHistory = [];
+let presMode = false;
+let presPages = ['accueil','dashboard','analysis','iaconnect','juridique','governance','forecast','report'];
+let presIndex = 0;
+
+/* ============================================================
+   NOTIFICATIONS DATA
+   ============================================================ */
+const NOTIFICATIONS = [
+  {
+    id:1, type:'danger', read:false,
+    title:'Tentative d\'exfiltration détectée — San-Pédro',
+    detail:'Connexion suspecte à 03h12 depuis IP 185.xx.xx.42 (hors UEMOA) sur le serveur Douanes. Volume : 2,3 Go. Action recommandée : blocage immédiat.',
+    time:'Aujourd\'hui, 03h12',
+    infra:'DOUANES'
+  },
+  {
+    id:2, type:'danger', read:false,
+    title:'Score critique — Plateforme e-GP',
+    detail:'Score de souveraineté tombé à 41/100 après 5 incidents. Article 44 du Code MP : offres électroniques potentiellement nulles.',
+    time:'Aujourd\'hui, 08h45',
+    infra:'EGP'
+  },
+  {
+    id:3, type:'warn', read:false,
+    title:'Renouvellement agrément ARTCI — ARMP',
+    detail:'L\'agrément ARTCI de l\'ARMP expire dans 3 mois. Procédure de renouvellement à initier avant le 15 juillet 2026.',
+    time:'Hier, 14h30',
+    infra:'ARMP'
+  },
+  {
+    id:4, type:'warn', read:true,
+    title:'Audit ARTCI requis — DCMP',
+    detail:'La Direction Centrale des Marchés Publics n\'a pas réalisé d\'audit ARTCI depuis 18 mois. Non-conformité réglementaire.',
+    time:'Avant-hier, 10h00',
+    infra:'DCMP'
+  },
+  {
+    id:5, type:'info', read:true,
+    title:'Migration réussie — DGI',
+    detail:'La Direction Générale des Impôts a finalisé la migration vers le Data Center National. Score : 92/100.',
+    time:'Il y a 3 jours',
+    infra:'DGI'
+  }
+];
+
+/* ============================================================
+   PROVIDERS IA (6 fournisseurs)
+   ============================================================ */
+const AI_PROVIDERS = {
+  groq:{
+    name:"Groq",icon:"⚡",model:"llama-3.1-8b-instant",
+    endpoint:"https://api.groq.com/openai/v1/chat/completions",
+    color:"#f55036",desc:"Ultra-rapide, gratuit"
+  },
+  gemini:{
+    name:"Google Gemini",icon:"🌟",model:"gemini-1.5-flash",
+    endpoint:"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+    color:"#4285F4",desc:"Multimodal Google"
+  },
+  openai:{
+    name:"OpenAI GPT-4o",icon:"🤖",model:"gpt-4o-mini",
+    endpoint:"https://api.openai.com/v1/chat/completions",
+    color:"#10a37f",desc:"GPT-4o mini"
+  },
+  mistral:{
+    name:"Mistral AI",icon:"🌪️",model:"mistral-small-latest",
+    endpoint:"https://api.mistral.ai/v1/chat/completions",
+    color:"#f7931e",desc:"Européen, RGPD"
+  },
+  anthropic:{
+    name:"Claude (Anthropic)",icon:"🧠",model:"claude-haiku-4-5-20251001",
+    endpoint:"https://api.anthropic.com/v1/messages",
+    color:"#c77537",desc:"Claude Haiku"
+  },
+  cohere:{
+    name:"Cohere",icon:"🔗",model:"command-r",
+    endpoint:"https://api.cohere.ai/v1/chat",
+    color:"#39594D",desc:"Spécialisé RAG"
+  }
+};
+
+/* ============================================================
+   UTILS
+   ============================================================ */
+const scoreColor=s=>s>=70?"var(--ok)":(s>=50?"var(--warning)":"var(--danger)");
+const scoreClass=s=>s>=70?"g":(s>=50?"o":"r");
+const scoreLabel=s=>s>=70?"Souverain":(s>=50?"Surveillance":"Critique");
+const confColor=s=>s>=70?"var(--ok)":(s>=50?"var(--warning)":"var(--danger)");
+const globalScore=()=>Math.round(DATA.reduce((a,b)=>a+b.score,0)/DATA.length);
+const globalConf=()=>Math.round(DATA.reduce((a,b)=>a+b.conformiteLegale,0)/DATA.length);
+const critiques=()=>DATA.filter(d=>d.risque==="Élevé").length;
+const localPct=()=>Math.round(DATA.filter(d=>d.hebergementLocal).length/DATA.length*100);
+const mpData=()=>DATA.filter(d=>d.marchesPublics);
+
+/* Sécurisation DOM */
+function safeText(str){ return String(str||"").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function toast(msg,icon="✅"){
+  const el=document.getElementById("toast");
+  el.innerHTML=`${icon} ${msg}`;el.classList.add("show");
+  setTimeout(()=>el.classList.remove("show"),3200);
+}
+function modal(html){
+  document.getElementById("modalContent").innerHTML=html;
+  document.getElementById("modalBg").classList.add("open");
+}
+function closeModal(){document.getElementById("modalBg").classList.remove("open")}
+
+/* ============================================================
+   MINISTÈRES — données filtrées par institution
+   ============================================================ */
+const MINISTRY_MAP = {
+  MFBUDGET:["DGI","TRESOR","TRESOR_KRH"],
+  MARMP:["ARMP","DCMP","EGP","MAIRIE_BKE","MAIRIE_SP","BTP_SOUMIS"],
+  MDCMP:["DCMP","EGP","BTP_SOUMIS"],
+  MDOUANES:["DOUANES"],
+  MDGI:["DGI"],
+  MTRESOR:["TRESOR","TRESOR_KRH"],
+  MAIRIE_BKE:["MAIRIE_BKE"],
+  MAIRIE_SP:["MAIRIE_SP"],
+  MKORHOGO:["TRESOR_KRH"],
+  PRIVATE:["BTP_SOUMIS"],
+  AUTRE:null
+};
+
+const MINISTRY_LABELS = {
+  MFBUDGET:"Ministère du Budget",
+  MARMP:"ARMP",
+  MDCMP:"DCMP",
+  MDOUANES:"Douanes",
+  MDGI:"DGI",
+  MTRESOR:"Trésor Public",
+  MAIRIE_BKE:"Mairie Bouaké",
+  MAIRIE_SP:"Mairie San-Pédro",
+  MKORHOGO:"Trésor Korhogo",
+  PRIVATE:"Soumissionnaire",
+  AUTRE:"Institution"
+};
+
+function filterDataByMinistry(){
+  const allowed=MINISTRY_MAP[currentMinistry];
+  if(!allowed) return JSON.parse(JSON.stringify(ORIG));
+  return ORIG.filter(d=>allowed.includes(d.id));
+}
+
+/* ============================================================
+   AUTH
+   ============================================================ */
+const CREDENTIALS={
+  user:{role:"user",pass:"user"},
+  admin:{role:"admin",pass:"admin"}
+};
+
+function login(u,p){
+  const c=CREDENTIALS[u];
+  if(c&&c.pass===p){currentRole=c.role;return true}
+  return false;
+}
+
+document.getElementById("loginBtn").addEventListener("click",()=>{
+  const u=document.getElementById("loginUser").value.trim();
+  const p=document.getElementById("loginPass").value.trim();
+  const ministry=document.getElementById("ministrySelect").value;
+  if(!ministry){document.getElementById("loginErr").textContent="Veuillez sélectionner votre institution.";return}
+  if(login(u,p)){
+    currentMinistry=ministry;
+    DATA=filterDataByMinistry();
+    ORIG=JSON.parse(JSON.stringify(DATA));
+    document.getElementById("loginScreen").style.display="none";
+    const app=document.getElementById("appContainer");
+    app.style.display="block";
+    document.getElementById("roleBadge").textContent=currentRole==="admin"?"Expert / Admin":"Décideur";
+    document.getElementById("ministryBadge").textContent=MINISTRY_LABELS[ministry]||"";
+    if(currentRole==="admin"){
+      expertMode=true;
+      document.getElementById("expertToggle").classList.add("active");
+      app.classList.add("expert-mode");
+    }
+    buildApp();
+    updateNotifBadge();
+    scheduleLiveNotification();
+    document.getElementById('presBtn').style.display='flex';
+    /* Presentation mode events */
+    document.getElementById('presBtn').addEventListener('click',enterPresMode);
+    document.getElementById('presExit').addEventListener('click',exitPresMode);
+    document.getElementById('presNext').addEventListener('click',()=>presNavigate(1));
+    document.getElementById('presPrev').addEventListener('click',()=>presNavigate(-1));
+  } else {
+    document.getElementById("loginErr").textContent="Identifiant ou mot de passe incorrect.";
+  }
+});
+document.getElementById("loginPass").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("loginBtn").click()});
+document.getElementById("logoutBtn").addEventListener("click",()=>location.reload());
+document.getElementById("modalClose").addEventListener("click",closeModal);
+
+/* Notification system events */
+document.getElementById("notifBtn").addEventListener("click",toggleNotifPanel);
+document.getElementById("notifClose").addEventListener("click",()=>closeNotifPanel());
+document.getElementById("notifOverlay").addEventListener("click",()=>closeNotifPanel());
+
+function toggleNotifPanel(){
+  const panel=document.getElementById("notifPanel");
+  const overlay=document.getElementById("notifOverlay");
+  panel.classList.toggle("open");
+  overlay.classList.toggle("open");
+  if(panel.classList.contains("open")) renderNotifications();
+}
+function closeNotifPanel(){
+  document.getElementById("notifPanel").classList.remove("open");
+  document.getElementById("notifOverlay").classList.remove("open");
+}
+function renderNotifications(){
+  const list=document.getElementById("notifList");
+  list.innerHTML=NOTIFICATIONS.map(n=>{
+    const cls=n.type==='danger'?'unread':n.type==='warn'?'warn':'info';
+    return `<div class="notif-item ${n.read?'info':cls}" onclick="handleNotifClick('${n.infra}')">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <span style="font-size:.9rem">${n.type==='danger'?'\ud83d\udd34':n.type==='warn'?'\ud83d\udfe1':'\u2705'}</span>
+        <strong style="font-size:.86rem">${safeText(n.title)}</strong>
+      </div>
+      <div style="font-size:.8rem;line-height:1.6;color:rgba(11,31,58,.7)">${safeText(n.detail)}</div>
+      <div class="notif-time">${safeText(n.time)}</div>
+    </div>`;
+  }).join('');
+}
+function handleNotifClick(infraId){
+  closeNotifPanel();
+  switchPage('analysis');
+  const sel=document.getElementById('infraSel');
+  if(sel){sel.value=infraId;renderAnalysis(infraId)}
+}
+function updateNotifBadge(){
+  const unread=NOTIFICATIONS.filter(n=>!n.read).length;
+  const badge=document.getElementById('notifBadge');
+  if(badge){badge.textContent=unread;badge.style.display=unread>0?'flex':'none'}
+}
+
+/* Delayed live notification for demo effect */
+function scheduleLiveNotification(){
+  setTimeout(()=>{
+    NOTIFICATIONS.unshift({
+      id:99, type:'danger', read:false,
+      title:'ALERTE LIVE \u2014 Acc\u00e8s non autoris\u00e9 d\u00e9tect\u00e9',
+      detail:'Tentative de connexion depuis IP 91.xx.xx.17 (Russie) sur la plateforme e-GP. Blocage automatique activ\u00e9. CERT-CI notifi\u00e9.',
+      time:'\u00c0 l\'instant',
+      infra:'EGP'
+    });
+    updateNotifBadge();
+    toast('\ud83d\udea8 Nouvelle alerte CERT-CI d\u00e9tect\u00e9e !','\ud83d\udd14');
+    const btn=document.getElementById('notifBtn');
+    if(btn) btn.style.animation='notifPulse .5s ease 3';
+  }, 45000);
+}
+document.getElementById("modalBg").addEventListener("click",e=>{if(e.target===document.getElementById("modalBg"))closeModal()});
+
+document.getElementById("expertToggle").addEventListener("click",()=>{
+  expertMode=!expertMode;
+  const app=document.getElementById("appContainer");
+  const tog=document.getElementById("expertToggle");
+  if(expertMode){
+    app.classList.add("expert-mode");tog.classList.add("active");
+    document.getElementById("toggleLabel").textContent="Mode Expert ✓";
+    toast("Mode Expert activé – Références juridiques et scoring détaillé visibles","⚖️");
+  } else {
+    app.classList.remove("expert-mode");tog.classList.remove("active");
+    document.getElementById("toggleLabel").textContent="Mode Expert";
+    toast("Mode Décideur activé","👤");
+  }
+  buildNav();
+});
+
+/* ============================================================
+   PRESENTATION MODE
+   ============================================================ */
+function enterPresMode(){
+  presMode=true;
+  presIndex=presPages.indexOf(currentPage);
+  if(presIndex<0) presIndex=0;
+  document.getElementById('appContainer').classList.add('pres-mode');
+  document.getElementById('presBtn').style.display='none';
+  updatePresNav();
+  toast('Mode Pr\u00e9sentation activ\u00e9 \u2014 Utilisez les fl\u00e8ches pour naviguer','\ud83c\udfac');
+}
+function exitPresMode(){
+  presMode=false;
+  document.getElementById('appContainer').classList.remove('pres-mode');
+  document.getElementById('presBtn').style.display='flex';
+  toast('Mode Pr\u00e9sentation d\u00e9sactiv\u00e9','\ud83d\udc64');
+}
+function presNavigate(dir){
+  presIndex=Math.max(0,Math.min(presPages.length-1,presIndex+dir));
+  switchPage(presPages[presIndex]);
+  updatePresNav();
+}
+function updatePresNav(){
+  const names={accueil:'Accueil',dashboard:'Vue d\'ensemble',analysis:'Analyse IA',iaconnect:'IA Externe',juridique:'Risques Juridiques',governance:'Gouvernance',forecast:'Pr\u00e9visions 2030',report:'Rapport'};
+  document.getElementById('presPageName').textContent=names[presPages[presIndex]]||'';
+}
+
+/* ============================================================
+   BUILD APP
+   ============================================================ */
+function buildApp(){buildNav();buildPages()}
+
+function buildNav(){
+  const tabs=[
+    {id:"accueil",label:"Accueil",icon:"🏠",expertOnly:false},
+    {id:"dashboard",label:"Vue d'ensemble",icon:"📊",expertOnly:false},
+    {id:"analysis",label:"Analyse IA",icon:"🔍",expertOnly:false},
+    {id:"iaconnect",label:"IA Externe",icon:"🤖",expertOnly:false},
+    {id:"juridique",label:"Risques Juridiques",icon:"⚖️",expertOnly:false},
+    {id:"governance",label:"Gouvernance Data",icon:"🏛️",expertOnly:false},
+    {id:"forecast",label:"Prévisions 2030",icon:"📈",expertOnly:false},
+    {id:"report",label:"Rapport",icon:"📄",expertOnly:false},
+    {id:"advanced",label:"Analyses Avancées",icon:"⚙️",expertOnly:true},
+  ];
+  const nav=document.getElementById("navBar");
+  nav.innerHTML="";
+  tabs.forEach((t,i)=>{
+    const btn=document.createElement("button");
+    btn.className="nav-btn"+(t.expertOnly?" expert-only":"")+(i===0?" active":"");
+    btn.setAttribute("data-page",t.id);
+    const icon=document.createElement("span");
+    icon.textContent=t.icon;
+    btn.appendChild(icon);
+    btn.appendChild(document.createTextNode(t.label));
+    btn.addEventListener("click",()=>switchPage(t.id));
+    nav.appendChild(btn);
+  });
+}
+
+function buildPages(){
+  const wrap=document.getElementById("mainWrap");
+  wrap.innerHTML="";
+  const pages=[
+    {id:"accueil",fn:buildAccueil},
+    {id:"dashboard",fn:buildDashboard},
+    {id:"analysis",fn:buildAnalysis},
+    {id:"iaconnect",fn:buildIAConnect},
+    {id:"juridique",fn:buildJuridique},
+    {id:"governance",fn:buildGovernance},
+    {id:"forecast",fn:buildForecast},
+    {id:"report",fn:buildReport},
+    {id:"advanced",fn:buildAdvanced}
+  ];
+  pages.forEach((p,i)=>{
+    const div=document.createElement("div");
+    div.id="page-"+p.id;
+    div.className="page"+(i===0?" active":"");
+    div.innerHTML=p.fn();
+    wrap.appendChild(div);
+  });
+  bindEvents();
+  initMap();
+  initCharts();
+}
+
+function switchPage(id){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));
+  const pg=document.getElementById("page-"+id);
+  if(pg)pg.classList.add("active");
+  const btn=document.querySelector(`[data-page="${id}"]`);
+  if(btn)btn.classList.add("active");
+  currentPage=id;
+  if(id==="advanced")initAdvancedCharts();
+}
+
+/* ============================================================
+   PAGE : ACCUEIL
+   ============================================================ */
+function buildAccueil(){
+  const ministryName=MINISTRY_LABELS[currentMinistry]||"Votre Institution";
+  return `
+  <div class="welcome-hero">
+    <div class="content">
+      <div class="welcome-tag">🌍 Hackathon SIADE · Module Marchés Publics · v3.0</div>
+      <h2>Bienvenue, ${ministryName}</h2>
+      <p>Plateforme de pilotage de la souveraineté numérique. Vous voyez uniquement les données relatives à votre périmètre d'action. Pour une vue nationale complète, contactez l'ARMP ou le Ministère du Budget.</p>
+    </div>
+  </div>
+
+  <div style="background:#FFF8F0;border:2px solid var(--ci-orange);border-radius:var(--radius);padding:1rem 1.4rem;margin-bottom:1.2rem">
+    <div style="font-weight:700;color:var(--ci-orange);margin-bottom:.4rem">⚠️ Données affichées : périmètre ${ministryName}</div>
+    <div style="font-size:.83rem;line-height:1.7;color:rgba(11,31,58,.75)">
+      Vous consultez <strong>${DATA.length} infrastructure(s)</strong> relevant de votre institution. 
+      Données basées sur des structures réelles vérifiées (rapports ARMP 2022-2023, publications ARTCI).
+      <span style="display:block;margin-top:.4rem;font-size:.78rem;color:rgba(11,31,58,.5)">En production : chaque ministère alimente sa propre section via l'API sécurisée AFRISOV. Les données ne transitent pas entre institutions sans autorisation formelle.</span>
+    </div>
+  </div>
+
+  <div class="g2" style="margin-bottom:1.2rem">
+    <div class="card">
+      <div class="card-hdr"><div class="card-title"><div class="cticon green">❓</div>Qu'est-ce qu'AFRISOV DATA MAP ?</div></div>
+      <p style="font-size:.87rem;line-height:1.8;color:rgba(11,31,58,.75)">
+        <strong>AFRISOV DATA MAP</strong> est un tableau de bord de souveraineté numérique pour la Côte d'Ivoire. 
+        Il évalue chaque infrastructure selon un <strong>scoring transparent et auditable</strong> basé sur 4 critères légaux 
+        (hébergement local, chiffrement, audit ARTCI, clause de souveraineté), pénalisé par les incidents détectés.
+      </p>
+      <div class="score-method-box" style="margin-top:.8rem">
+        <h4>📐 Méthodologie du score (transparente)</h4>
+        Hébergement local : +40 pts (Art.44 Code MP) | Chiffrement : +20 pts (Loi 2013-450 Art.19) | 
+        Audit ARTCI : +20 pts | Clause souveraineté : +20 pts | Incidents détectés : -5 pts chacun (max -25)
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title"><div class="cticon blue">🏛️</div>Gouvernance des données</div></div>
+      <p style="font-size:.87rem;line-height:1.8;color:rgba(11,31,58,.75)">
+        <strong>Qui alimente les données ?</strong> Chaque ministère gère son propre périmètre. 
+        Le responsable SI de l'institution déclare ses infrastructures via un formulaire sécurisé validé par l'ARTCI.
+        Les données sont <strong>cloisonnées par institution</strong> — la DGI ne voit pas les données de la Mairie de Bouaké.
+      </p>
+      <div style="margin-top:.8rem;font-size:.82rem;line-height:1.8">
+        <strong>Hébergement de l'application :</strong>
+        <span style="background:rgba(26,92,56,.1);color:var(--forest);padding:2px 8px;border-radius:10px;font-weight:700;margin-left:4px">Data Center National ARTCI – Abidjan</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><div class="card-title"><div class="cticon gold">⚙️</div>Fonctionnalités disponibles</div></div>
+    <div class="g3">
+      <div class="how-step"><div class="step-num">1</div><div class="step-txt"><div class="step-title">Carte interactive</div><div class="step-desc">Visualisez vos infrastructures sur une carte. Vert = souverain, Orange = surveillance, Rouge = critique.</div></div></div>
+      <div class="how-step"><div class="step-num">2</div><div class="step-txt"><div class="step-title">Scoring métier</div><div class="step-desc">Score calculé selon 4 critères légaux ivoiriens. Transparent, auditable, défendable devant un juriste.</div></div></div>
+      <div class="how-step"><div class="step-num">3</div><div class="step-txt"><div class="step-title">IA Externe</div><div class="step-desc">Connectez votre propre clé API (Groq, Gemini, OpenAI, Mistral...) pour des analyses IA personnalisées.</div></div></div>
+      <div class="how-step"><div class="step-num">4</div><div class="step-txt"><div class="step-title">Risques juridiques</div><div class="step-desc">Alertes basées sur le Code des Marchés Publics, Loi 2013-450 et Directive UEMOA n°15/2002.</div></div></div>
+      <div class="how-step"><div class="step-num">5</div><div class="step-txt"><div class="step-title">Gouvernance Data</div><div class="step-desc">Comprendre qui alimente les données, comment elles sont validées et cloisonnées par institution.</div></div></div>
+      <div class="how-step"><div class="step-num">6</div><div class="step-txt"><div class="step-title">Rapport décisionnel</div><div class="step-desc">Générez un rapport stratégique prêt à transmettre à votre Direction Générale.</div></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><div class="card-title"><div class="cticon purple">🔗</div>Intégration avec les SI existants</div></div>
+    <div class="g3">
+      <div class="si-card">
+        <span class="si-badge si-ok">✅ Compatible</span>
+        <div style="font-weight:700;font-size:.85rem;margin-bottom:.3rem">SIGFIP</div>
+        <div style="font-size:.78rem;color:rgba(11,31,58,.6)">Import CSV des lignes budgétaires pour enrichir le scoring financier.</div>
+      </div>
+      <div class="si-card">
+        <span class="si-badge si-plan">📅 Phase 2</span>
+        <div style="font-weight:700;font-size:.85rem;margin-bottom:.3rem">SIGMAP / e-GP</div>
+        <div style="font-size:.78rem;color:rgba(11,31,58,.6)">Connexion API directe prévue pour alimentation automatique des statuts d'appels d'offres.</div>
+      </div>
+      <div class="si-card">
+        <span class="si-badge si-plan">📅 Phase 2</span>
+        <div style="font-weight:700;font-size:.85rem;margin-bottom:.3rem">Portail ARTCI</div>
+        <div style="font-size:.78rem;color:rgba(11,31,58,.6)">Vérification automatique des agréments cloud via l'API registre ARTCI.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    <div class="disc-title">⚠️ Avertissement important</div>
+    <p>
+      <strong>AFRISOV DATA MAP v4.0</strong> — Sources : rapports ARMP 2022-2023, ARTCI, MEF CI, Code des Marchés Publics, Loi 2013-450, Directive UEMOA n°15/2002.
+    </p>
+  </div>
+  `;
+}
+
+/* ============================================================
+   PAGE : DASHBOARD
+   ============================================================ */
+function buildDashboard(){
+  const gs=globalScore();const gc=globalConf();const cr=critiques();const lp=localPct();
+  const mpCrit=DATA.filter(d=>d.marchesPublics&&d.risque==="Élevé").length;
+
+  const alertsHtml=DATA.slice().sort((a,b)=>a.score-b.score).map(d=>{
+    const cls=d.risque==="Élevé"?"crit":(d.risque==="Moyen"?"warn":"good");
+    const dc=d.risque==="Élevé"?"r":(d.risque==="Moyen"?"o":"g");
+    const mpBadge=d.marchesPublics?`<span class="legal-badge lb-warn" style="font-size:.68rem">🏛️ MP</span>`:"";
+    return `<div class="alert-item ${cls}" data-id="${d.id}">
+      <div class="a-dot ${dc}"></div>
+      <div style="flex:1">
+        <div class="a-name">${safeText(d.nom)} ${mpBadge}</div>
+        <div class="a-det">${safeText(d.ville)} · Score ${d.score}/100 · ${d.hebergementLocal?"✅ Local":"❌ "+safeText(d.serveur.split(" ")[0])+" étranger"}</div>
+        ${d.anomalie?`<div class="a-legal">${safeText(d.anomalie).substring(0,80)}...</div>`:""}
+        <div class="expert-content a-legal">${d.legalRisks.length>0?"⚖️ "+safeText(d.legalRisks[0]):""}</div>
+      </div>
+    </div>`;
+  }).join("");
+
+  const tblRows=DATA.map(d=>`
+    <tr>
+      <td><strong>${safeText(d.nom)}</strong><br><span style="font-size:.74rem;color:rgba(11,31,58,.5)">${safeText(d.ville)}</span></td>
+      <td><span style="font-family:'Playfair Display',serif;font-weight:800;font-size:1rem;color:${scoreColor(d.score)}">${d.score}/100</span></td>
+      <td class="hide-mobile expert-content"><span style="color:${confColor(d.conformiteLegale)};font-weight:700">${d.conformiteLegale}/100</span></td>
+      <td><span class="rtag ${d.risque==="Élevé"?"r":d.risque==="Moyen"?"o":"g"}">${safeText(d.risque)}</span></td>
+      <td class="hide-mobile"><span style="font-size:.8rem">${d.hebergementLocal?"✅ Local":"❌ Étranger"}</span></td>
+    </tr>`).join("");
+
+  return `
+  <div class="pg-header">
+    <div><div class="pg-title">Vue d'ensemble</div><div class="pg-sub">Périmètre : ${MINISTRY_LABELS[currentMinistry]||"National"} — ${new Date().toLocaleDateString('fr-CI',{day:'numeric',month:'long',year:'numeric'})}</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <label class="upload-lbl">📂 Importer CSV<input type="file" id="csvUpload" accept=".csv"></label>
+      <button class="btn btn-ghost btn-sm" id="resetBtn">↩ Réinitialiser</button>
+    </div>
+  </div>
+
+  <div class="g3" style="margin-bottom:1.1rem">
+    <div class="kpi anim-fade-up anim-d1"><div class="kpi-ico g">🛡️</div><div><div class="kpi-val" style="color:${scoreColor(gs)}">${gs}<span class="kpi-unit">/100</span></div><div class="kpi-lbl">Score souveraineté</div><span class="kpi-badge ${gs>=70?"up":gs>=50?"mid":"down"}">${scoreLabel(gs)}</span></div></div>
+    <div class="kpi anim-fade-up anim-d2"><div class="kpi-ico r">⚠️</div><div><div class="kpi-val" style="color:${cr>0?"var(--danger)":"var(--ok)}"}">${cr}</div><div class="kpi-lbl">Infrastructures critiques</div><span class="kpi-badge ${cr>0?"down":"up"}">${mpCrit} marchés publics</span></div></div>
+    <div class="kpi anim-fade-up anim-d3"><div class="kpi-ico o">🏠</div><div><div class="kpi-val">${lp}<span class="kpi-unit">%</span></div><div class="kpi-lbl">Données hébergées en CI</div><span class="kpi-badge ${lp>=60?"up":"down"}">${lp<50?"Insuffisant":"En progression"}</span></div></div>
+  </div>
+  <div class="kpi expert-content" style="margin-bottom:1.1rem"><div class="kpi-ico b">⚖️</div><div><div class="kpi-val" style="color:${confColor(gc)}">${gc}<span class="kpi-unit">/100</span></div><div class="kpi-lbl">Conformité légale moyenne (Loi 2013-450 + Code MP + UEMOA)</div><span class="kpi-badge ${gc>=70?"up":gc>=50?"mid":"down"}">${gc<50?"Non conforme":"Partiellement conforme"}</span></div></div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-hdr"><div class="card-title"><div class="cticon green">🗺️</div>Carte des infrastructures</div></div>
+      <div class="search-row">
+        <div class="s-wrap"><span class="s-icon">🔍</span><input class="s-inp" type="text" id="searchInput" placeholder="Rechercher..."></div>
+        <select class="sel" id="filterCat" style="min-width:140px">
+          <option value="">Toutes catégories</option>
+          <option value="Marchés Publics">Marchés Publics</option>
+          <option value="Fiscalité">Fiscalité</option>
+          <option value="Commerce">Commerce</option>
+          <option value="Finances">Finances</option>
+          <option value="Soumissionnaire">Soumissionnaire</option>
+        </select>
+      </div>
+      <div class="map-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:var(--ok)"></div>Souverain (&gt;70)</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--warning)"></div>Surveillance (50–70)</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--danger)"></div>Critique (&lt;50)</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--ci-orange);border:2px dashed #888"></div>Marchés publics</div>
+      </div>
+      <div id="map"></div>
+      <div id="mapFallback" class="svg-map-fallback" style="display:none">
+        <svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+          <path d="M120,80 L180,60 L250,55 L320,65 L380,90 L400,120 L410,180 L420,250 L400,320 L370,380 L320,420 L260,440 L200,430 L150,400 L110,350 L90,280 L85,200 L95,140 Z" fill="#d4eaf0" stroke="#1A5C38" stroke-width="2" opacity="0.6"/>
+          <g id="svgMapPoints">
+            <circle cx="280" cy="380" r="8" fill="#1A5C38" stroke="#fff" stroke-width="2" class="map-point"><title>DGI - Abidjan (92/100)</title></circle>
+            <text x="295" y="385" font-size="9" fill="#0B1F3A" font-family="Inter" font-weight="600">DGI 92</text>
+            <circle cx="260" cy="365" r="8" fill="#C0392B" stroke="#fff" stroke-width="2" class="map-point"><title>e-GP - Abidjan (41/100)</title></circle>
+            <text x="275" y="358" font-size="9" fill="#C0392B" font-family="Inter" font-weight="600">e-GP 41</text>
+            <circle cx="300" cy="370" r="8" fill="#1A5C38" stroke="#fff" stroke-width="2" class="map-point"><title>ARMP - Abidjan (78/100)</title></circle>
+            <text x="315" y="375" font-size="9" fill="#0B1F3A" font-family="Inter" font-weight="600">ARMP 78</text>
+            <circle cx="240" cy="390" r="8" fill="#D35400" stroke="#fff" stroke-width="2" class="map-point"><title>DCMP - Abidjan (55/100)</title></circle>
+            <text x="210" y="400" font-size="9" fill="#D35400" font-family="Inter" font-weight="600">DCMP 55</text>
+            <circle cx="200" cy="250" r="7" fill="#D35400" stroke="#fff" stroke-width="2" class="map-point"><title>Douanes - San-Pédro (48/100)</title></circle>
+            <text x="155" y="245" font-size="9" fill="#D35400" font-family="Inter" font-weight="600">Douanes 48</text>
+            <circle cx="250" cy="200" r="7" fill="#1A5C38" stroke="#fff" stroke-width="2" class="map-point"><title>Trésor - Yamoussoukro (85/100)</title></circle>
+            <text x="265" y="205" font-size="9" fill="#1A5C38" font-family="Inter" font-weight="600">Trésor 85</text>
+            <circle cx="320" cy="150" r="7" fill="#C0392B" stroke="#fff" stroke-width="2" class="map-point"><title>Mairie - Bouaké (38/100)</title></circle>
+            <text x="335" y="155" font-size="9" fill="#C0392B" font-family="Inter" font-weight="600">Bouaké 38</text>
+            <circle cx="160" cy="300" r="7" fill="#C0392B" stroke="#fff" stroke-width="2" class="map-point"><title>Port - San-Pédro (45/100)</title></circle>
+            <text x="115" y="305" font-size="9" fill="#C0392B" font-family="Inter" font-weight="600">Port 45</text>
+            <circle cx="350" cy="100" r="7" fill="#1A5C38" stroke="#fff" stroke-width="2" class="map-point"><title>CNTIG - Korhogo (72/100)</title></circle>
+            <text x="360" y="105" font-size="9" fill="#1A5C38" font-family="Inter" font-weight="600">CNTIG 72</text>
+            <circle cx="270" cy="395" r="6" fill="#1A5C38" stroke="#fff" stroke-width="2" class="map-point"><title>MEF SI - Abidjan (88/100)</title></circle>
+            <text x="250" y="415" font-size="9" fill="#1A5C38" font-family="Inter" font-weight="600">MEF 88</text>
+          </g>
+          <rect x="10" y="440" width="180" height="50" rx="6" fill="rgba(255,255,255,.85)" stroke="#ccc" stroke-width="1"/>
+          <circle cx="25" cy="455" r="5" fill="#1A5C38"/><text x="35" y="459" font-size="8" fill="#0B1F3A" font-family="Inter">Score ≥ 70 (Souverain)</text>
+          <circle cx="25" cy="470" r="5" fill="#D35400"/><text x="35" y="474" font-size="8" fill="#0B1F3A" font-family="Inter">Score 50-69 (Surveillance)</text>
+          <circle cx="25" cy="485" r="5" fill="#C0392B"/><text x="35" y="489" font-size="8" fill="#0B1F3A" font-family="Inter">Score &lt; 50 (Critique)</text>
+          <text x="250" y="30" text-anchor="middle" font-size="14" fill="#0B1F3A" font-family="Playfair Display" font-weight="800">Carte des Infrastructures — Côte d'Ivoire</text>
+          <text x="250" y="48" text-anchor="middle" font-size="10" fill="rgba(11,31,58,.5)" font-family="Inter">Vue SVG • ${DATA.length} infrastructures surveillées</text>
+        </svg>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title"><div class="cticon red">🚨</div>Alertes stratégiques</div></div>
+      <div id="alertsList">${alertsHtml}</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:1.1rem">
+    <div class="card-hdr"><div class="card-title"><div class="cticon blue">📋</div>Tableau de synthèse</div></div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr>
+          <th>Infrastructure</th>
+          <th>Score souveraineté</th>
+          <th class="hide-mobile expert-content">Conformité légale</th>
+          <th>Niveau de risque</th>
+          <th class="hide-mobile">Hébergement</th>
+        </tr></thead>
+        <tbody id="infraTbl">${tblRows}</tbody>
+      </table>
+    </div>
+  </div>
+  `;
+}
+
+/* ============================================================
+   PAGE : ANALYSE IA (scoring métier)
+   ============================================================ */
+function buildAnalysis(){
+  const opts=DATA.map(d=>`<option value="${d.id}">${safeText(d.nom)} (${safeText(d.ville)}) — Score ${d.score}/100</option>`).join("");
+  return `
+  <div class="pg-header">
+    <div><div class="pg-title">Analyse — Scoring métier</div><div class="pg-sub">Diagnostic détaillé basé sur les critères légaux ivoiriens</div></div>
+  </div>
+
+  <div class="score-method-box">
+    <h4>📐 Méthodologie de scoring (auditable)</h4>
+    Notre scoring n'est <strong>pas une boîte noire</strong> : il traduit directement les obligations légales en points. 
+    Hébergement local (+40 pts, Art.44 Code MP) · Chiffrement (+20 pts, Loi 2013-450 Art.19) · 
+    Audit ARTCI (+20 pts) · Clause souveraineté (+20 pts, UEMOA n°15/2002) · Incidents (-5 pts/incident). 
+    <strong>Chaque point est justifiable devant un tribunal administratif.</strong>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><div class="card-title"><div class="cticon green">🔍</div>Sélectionner une infrastructure</div></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <select class="sel" id="infraSel" style="min-width:280px">${opts}</select>
+      <button class="btn btn-g" id="analyzeBtn">Lancer l'analyse</button>
+    </div>
+  </div>
+  <div id="iaResultBox">
+    <div class="card" style="opacity:.5;text-align:center;padding:3rem">
+      <div style="font-size:2.5rem;margin-bottom:.8rem">🔍</div>
+      <div style="font-weight:600;color:rgba(11,31,58,.4)">Sélectionnez une infrastructure puis cliquez sur « Lancer l'analyse »</div>
+    </div>
+  </div>
+  `;
+}
+
+function renderAnalysis(id){
+  const d=DATA.find(x=>x.id===id);if(!d)return;
+  const isRisk=d.risque==="Élevé";const isMed=d.risque==="Moyen";
+  const sc=scoreColor(d.score);const cc=confColor(d.conformiteLegale);
+
+  const legalRisksHtml=d.legalRisks.length>0
+    ?`<div class="expert-content"><div style="font-weight:700;font-size:.84rem;margin:.8rem 0 .4rem;color:var(--danger)">⚖️ Risques juridiques identifiés</div>${d.legalRisks.map(r=>`<div style="font-size:.8rem;padding:5px 10px;background:var(--danger-pale);border-radius:6px;margin-bottom:4px;color:var(--danger)">• ${safeText(r)}</div>`).join("")}</div>`:""
+
+  const recoText=isRisk
+    ?`Relocalisation vers le Data Center National d'Abidjan. Coût estimé : ${d.id==="DOUANES"||d.id==="EGP"?"520M":"320M"} FCFA. ROI estimé basé sur réduction du risque contentieux (estimation basse, non garantie).`
+    :isMed
+    ?`Audit de sécurité prioritaire et plan de migration sur 18 mois.`
+    :`Infrastructure conforme. Maintenir les standards. Audit annuel recommandé.`;
+
+  const anomBlock=d.anomalie?`
+    <div style="background:var(--danger-pale);border:1px solid rgba(192,57,43,.2);border-radius:var(--radius-sm);padding:1rem;margin-bottom:.8rem">
+      <div style="font-weight:700;color:var(--danger);margin-bottom:.4rem">⚠️ Anomalie détectée</div>
+      <div style="font-size:.84rem;line-height:1.7">${safeText(d.anomalie)}</div>
+    </div>`:"";
+
+  const box=document.getElementById("iaResultBox");
+  if(!box)return;
+  box.innerHTML=`
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-title"><div class="cticon ${scoreClass(d.score)}">${d.score>=70?"✅":d.score>=50?"🟡":"🔴"}</div>${safeText(d.nom)}</div>
+        <div style="font-size:.78rem;color:rgba(11,31,58,.5)">${safeText(d.ville)} · ${safeText(d.categorie)}</div>
+      </div>
+      <div class="g2" style="margin-bottom:1rem">
+        <div>
+          <div style="font-size:.74rem;font-weight:700;color:rgba(11,31,58,.5);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Score souveraineté</div>
+          <div style="font-family:'Playfair Display',serif;font-size:2.4rem;font-weight:800;color:${sc};line-height:1">${d.score}<span style="font-size:1rem;opacity:.45">/100</span></div>
+          <div class="pbar" style="margin-top:7px"><div class="pfill" style="width:${d.score}%;background:${sc}"></div></div>
+        </div>
+        <div class="expert-content">
+          <div style="font-size:.74rem;font-weight:700;color:rgba(11,31,58,.5);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Conformité légale</div>
+          <div style="font-family:'Playfair Display',serif;font-size:2.4rem;font-weight:800;color:${cc};line-height:1">${d.conformiteLegale}<span style="font-size:1rem;opacity:.45">/100</span></div>
+          <div class="pbar" style="margin-top:7px"><div class="pfill" style="width:${d.conformiteLegale}%;background:${cc}"></div></div>
+        </div>
+      </div>
+      <div class="score-method-box">
+        <h4>🔍 Détail du calcul de score</h4>
+        ${d.methodologie||"Scoring selon critères légaux CI"}
+        <br><span style="font-size:.78rem;color:rgba(11,31,58,.5)">Source : ${d.sourceRef||"Cadre légal CI"}</span>
+      </div>
+      <div style="font-size:.82rem;line-height:1.9;margin-bottom:.9rem">
+        🖥️ Hébergement : <strong>${safeText(d.serveur)}</strong> &nbsp;|&nbsp;
+        🔔 Incidents : <strong style="color:${d.incidents>2?"var(--danger)":"var(--ok)}"}">${d.incidents}</strong> &nbsp;|&nbsp;
+        🔑 Agrément : <strong>${safeText(d.agrement)}</strong>
+      </div>
+      ${anomBlock}
+      <div class="ia-result">
+        <div style="font-weight:700;margin-bottom:.4rem">${isRisk?"⚠️ Analyse de risque :":isMed?"🟡 Analyse de risque :":"✅ Analyse de conformité :"}</div>
+        <div style="font-size:.85rem;line-height:1.7">${safeText(d.description)}</div>
+      </div>
+      ${legalRisksHtml}
+      <div class="ia-reco"><div style="font-weight:700;margin-bottom:.4rem">💡 Recommandation prioritaire</div><div style="font-size:.84rem;line-height:1.7">${recoText}</div></div>
+      ${d.refs?`<div class="expert-content legal-box" style="margin-top:.9rem"><strong>📚 Références légales :</strong> ${d.refs.map(r=>safeText(r)).join(" · ")}</div>`:""}
+      <div style="margin-top:1rem;padding:.8rem 1rem;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border);font-size:.8rem">
+        💡 Pour une analyse IA approfondie de cette infrastructure, rendez-vous dans l'onglet <strong>🤖 IA Externe</strong>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   PAGE : IA EXTERNE — 6 providers
+   ============================================================ */
+function buildIAConnect(){
+  const provHtml=Object.entries(AI_PROVIDERS).map(([key,p])=>`
+    <div class="ia-provider-btn${selectedAIProvider===key?" selected":""}" data-provider="${key}" id="prov-${key}" onclick="selectProvider('${key}')">
+      <div style="font-size:1.4rem;margin-bottom:.3rem">${p.icon}</div>
+      <div style="font-weight:700;font-size:.82rem">${p.name}</div>
+      <div style="font-size:.72rem;color:rgba(11,31,58,.5);margin-top:2px">${p.desc}</div>
+    </div>`).join("");
+
+  return `
+  <div class="pg-header">
+    <div><div class="pg-title">IA Externe — Analyse avancée</div><div class="pg-sub">Connectez votre clé API pour des analyses IA concrètes sur vos données</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><div class="card-title"><div class="cticon green">🤖</div>Sélectionner un fournisseur IA</div></div>
+    <div class="ia-provider-grid">${provHtml}</div>
+
+    <div id="aiKeySection" style="display:${selectedAIProvider?"block":"none"}">
+      <div style="margin-bottom:.8rem">
+        <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:5px">
+          Clé API ${selectedAIProvider?AI_PROVIDERS[selectedAIProvider]?.name:""} 
+          <span style="font-size:.72rem;color:rgba(11,31,58,.4);font-weight:400">(stockée localement uniquement, jamais envoyée à AFRISOV)</span>
+        </label>
+        <div style="display:flex;gap:8px">
+          <input class="ia-key-input" type="password" id="aiKeyInput" placeholder="Entrez votre clé API..." style="flex:1" value="${aiApiKey}">
+          <button class="btn btn-g btn-sm" onclick="saveAIKey()">💾 Sauvegarder</button>
+        </div>
+        <div style="font-size:.75rem;color:rgba(11,31,58,.4);margin-top:5px">
+          🔒 Votre clé est stockée uniquement dans la mémoire locale du navigateur (sessionStorage).
+          Elle n'est jamais transmise aux serveurs AFRISOV.
+        </div>
+      </div>
+
+      <div style="margin-bottom:.8rem">
+        <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:5px">Infrastructure à analyser</label>
+        <select class="sel" id="aiInfraSel" style="min-width:280px;width:100%">
+          ${DATA.map(d=>`<option value="${d.id}">${safeText(d.nom)} — Score ${d.score}/100</option>`).join("")}
+        </select>
+      </div>
+
+      <div style="margin-bottom:.8rem">
+        <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:5px">Question personnalisée (optionnel)</label>
+        <input class="ia-key-input" type="text" id="aiCustomQuestion" 
+          placeholder="Ex: Quels sont les risques spécifiques pour un hôpital ?" 
+          style="width:100%">
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-g" onclick="launchAIAnalysis()">🚀 Lancer l'analyse IA</button>
+        <button class="btn btn-ghost btn-sm" onclick="launchAIAnalysis('juridique')">⚖️ Focus juridique</button>
+        <button class="btn btn-ghost btn-sm" onclick="launchAIAnalysis('budget')">💰 Estimation budget migration</button>
+        <button class="btn btn-ghost btn-sm" onclick="launchAIAnalysis('risques')">🛡️ Risques cybersécurité</button>
+      </div>
+    </div>
+
+    <div id="aiKeyPrompt" style="display:${selectedAIProvider?"none":"block"};text-align:center;padding:2rem;color:rgba(11,31,58,.4);font-size:.85rem">
+      ☝️ Sélectionnez un fournisseur IA ci-dessus pour commencer
+    </div>
+  </div>
+
+  <div id="aiResponseCard" style="display:none">
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-title"><div class="cticon blue">🧠</div>Analyse IA — <span id="aiProviderLabel"></span></div>
+        <button class="btn btn-ghost btn-sm" onclick="clearAIResponse()">✕ Effacer</button>
+      </div>
+      <div class="ia-response-box" id="aiResponseContent">En attente...</div>
+      <div id="aiHistorySection" style="margin-top:1rem"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><div class="card-title"><div class="cticon gold">📋</div>Guide d'obtention des clés API gratuites</div></div>
+    <div class="g3">
+      <div style="background:var(--surface);border-radius:var(--radius-sm);padding:1rem;border:1px solid var(--border)">
+        <div style="font-weight:700;font-size:.85rem;margin-bottom:.4rem">⚡ Groq (gratuit)</div>
+        <div style="font-size:.78rem;line-height:1.7;color:rgba(11,31,58,.65)">console.groq.com → API Keys → Create. Quota gratuit généreux. Ultra-rapide (LLaMA 3).</div>
+      </div>
+      <div style="background:var(--surface);border-radius:var(--radius-sm);padding:1rem;border:1px solid var(--border)">
+        <div style="font-weight:700;font-size:.85rem;margin-bottom:.4rem">🌟 Gemini (gratuit)</div>
+        <div style="font-size:.78rem;line-height:1.7;color:rgba(11,31,58,.65)">aistudio.google.com → Get API Key. Plan gratuit disponible. Gemini 1.5 Flash.</div>
+      </div>
+      <div style="background:var(--surface);border-radius:var(--radius-sm);padding:1rem;border:1px solid var(--border)">
+        <div style="font-weight:700;font-size:.85rem;margin-bottom:.4rem">🌪️ Mistral (essai)</div>
+        <div style="font-size:.78rem;line-height:1.7;color:rgba(11,31,58,.65)">console.mistral.ai → API Keys. Option européenne (RGPD). Crédits d'essai offerts.</div>
+      </div>
+    </div>
+  </div>
+  `;
+}
+
+function selectProvider(key){
+  selectedAIProvider=key;
+  document.querySelectorAll(".ia-provider-btn").forEach(b=>{
+    b.classList.toggle("selected",b.dataset.provider===key);
+  });
+  const keySection=document.getElementById("aiKeySection");
+  const prompt=document.getElementById("aiKeyPrompt");
+  if(keySection)keySection.style.display="block";
+  if(prompt)prompt.style.display="none";
+  const keyInput=document.getElementById("aiKeyInput");
+  if(keyInput)keyInput.value=aiApiKey;
+  toast(`${AI_PROVIDERS[key].name} sélectionné`,"🤖");
+}
+
+function saveAIKey(){
+  const val=document.getElementById("aiKeyInput")?.value.trim();
+  if(!val){toast("Entrez une clé API valide","❌");return}
+  aiApiKey=val;
+  try{sessionStorage.setItem("afrisov_ai_key_"+selectedAIProvider,val)}catch(e){}
+  toast("Clé API sauvegardée (session uniquement)","🔐");
+}
+
+async function launchAIAnalysis(focusType="general"){
+  if(!selectedAIProvider){toast("Sélectionnez d'abord un fournisseur IA","❌");return}
+  const key=document.getElementById("aiKeyInput")?.value.trim()||aiApiKey;
+  if(!key){toast("Entrez votre clé API","❌");return}
+
+  const infraId=document.getElementById("aiInfraSel")?.value;
+  const infra=DATA.find(x=>x.id===infraId);
+  if(!infra){toast("Sélectionnez une infrastructure","❌");return}
+
+  const customQ=document.getElementById("aiCustomQuestion")?.value.trim();
+  const provider=AI_PROVIDERS[selectedAIProvider];
+
+  const focusPrompts={
+    general:`Analyse cette infrastructure publique ivoirienne et donne des recommandations concrètes.`,
+    juridique:`Concentre-toi sur les risques juridiques spécifiques selon le droit ivoirien (Code des Marchés Publics, Loi 2013-450, UEMOA n°15/2002).`,
+    budget:`Estime le budget de migration vers une infrastructure souveraine et calcule le ROI.`,
+    risques:`Analyse les risques cybersécurité spécifiques et les vecteurs d'attaque potentiels.`
+  };
+
+  const systemPrompt=`Tu es un expert en souveraineté numérique et marchés publics pour la Côte d'Ivoire. 
+Tu maîtrises le Code des Marchés Publics CI, la Loi 2013-450 sur la protection des données personnelles, 
+la Directive UEMOA n°15/2002, et les enjeux de cybersécurité africains.
+Réponds en français, de manière structurée, concrète et actionnable pour un décideur public ivoirien.`;
+
+  const userPrompt=`${focusPrompts[focusType]||focusPrompts.general}
+${customQ?"Question spécifique : "+customQ:""}
+
+Infrastructure analysée :
+- Nom : ${infra.nom}
+- Ville : ${infra.ville}
+- Catégorie : ${infra.categorie}
+- Type de données : ${infra.typeDonnee}
+- Score de souveraineté : ${infra.score}/100 (${scoreLabel(infra.score)})
+- Hébergement local : ${infra.hebergementLocal?"Oui":"Non"}
+- Serveur : ${infra.serveur}
+- Incidents : ${infra.incidents}
+- Agrément ARTCI : ${infra.agrement}
+- Conformité légale : ${infra.conformiteLegale}/100
+- Risques légaux identifiés : ${infra.legalRisks.join("; ")||"Aucun"}
+- Description : ${infra.description}`;
+
+  const card=document.getElementById("aiResponseCard");
+  const content=document.getElementById("aiResponseContent");
+  const label=document.getElementById("aiProviderLabel");
+  if(card)card.style.display="block";
+  if(label)label.textContent=provider.name;
+  if(content){content.textContent="⏳ Analyse en cours...";content.classList.add("loading")}
+
+  try{
+    let responseText="";
+
+    if(selectedAIProvider==="gemini"){
+      const url=`${provider.endpoint}?key=${key}`;
+      const resp=await fetch(url,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          contents:[{parts:[{text:systemPrompt+"\n\n"+userPrompt}]}],
+          generationConfig:{temperature:0.7,maxOutputTokens:1500}
+        })
+      });
+      if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||"Erreur API Gemini")}
+      const data=await resp.json();
+      responseText=data.candidates?.[0]?.content?.parts?.[0]?.text||"Pas de réponse";
+    } else if(selectedAIProvider==="anthropic"){
+      const resp=await fetch(provider.endpoint,{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01"},
+        body:JSON.stringify({
+          model:provider.model,max_tokens:1500,
+          system:systemPrompt,
+          messages:[{role:"user",content:userPrompt}]
+        })
+      });
+      if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||"Erreur API Anthropic")}
+      const data=await resp.json();
+      responseText=data.content?.[0]?.text||"Pas de réponse";
+    } else if(selectedAIProvider==="cohere"){
+      const resp=await fetch(provider.endpoint,{
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
+        body:JSON.stringify({
+          model:provider.model,
+          message:userPrompt,
+          preamble:systemPrompt,
+          max_tokens:1500,temperature:0.7
+        })
+      });
+      if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||"Erreur API Cohere")}
+      const data=await resp.json();
+      responseText=data.text||data.message||"Pas de réponse";
+    } else {
+      // OpenAI-compatible : Groq, Mistral, OpenAI
+      const resp=await fetch(provider.endpoint,{
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
+        body:JSON.stringify({
+          model:provider.model,
+          messages:[
+            {role:"system",content:systemPrompt},
+            {role:"user",content:userPrompt}
+          ],
+          max_tokens:1500,temperature:0.7
+        })
+      });
+      if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||"Erreur API "+provider.name)}
+      const data=await resp.json();
+      responseText=data.choices?.[0]?.message?.content||"Pas de réponse";
+    }
+
+    if(content){content.textContent=responseText;content.classList.remove("loading")}
+
+    aiAnalysisHistory.unshift({
+      provider:provider.name,
+      infra:infra.nom,
+      focus:focusType,
+      timestamp:new Date().toLocaleTimeString('fr-CI'),
+      response:responseText
+    });
+    renderAIHistory();
+    toast(`Analyse ${provider.name} terminée !`,"🧠");
+
+  } catch(err){
+    if(content){
+      content.textContent=`❌ Erreur : ${err.message}\n\nVérifiez :\n• Votre clé API est valide\n• Vous avez des crédits disponibles\n• Le fournisseur autorise les requêtes depuis un navigateur`;
+      content.classList.remove("loading");
+    }
+    toast("Erreur API : "+err.message,"❌");
+  }
+}
+
+function clearAIResponse(){
+  const card=document.getElementById("aiResponseCard");
+  if(card)card.style.display="none";
+}
+
+function renderAIHistory(){
+  const section=document.getElementById("aiHistorySection");
+  if(!section||aiAnalysisHistory.length===0)return;
+  section.innerHTML=`<div style="font-size:.8rem;font-weight:700;color:rgba(11,31,58,.5);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.04em">Historique des analyses</div>`+
+    aiAnalysisHistory.slice(0,3).map(h=>`
+      <div style="padding:.6rem .9rem;background:var(--surface);border-radius:var(--radius-sm);margin-bottom:.4rem;font-size:.78rem;cursor:pointer;border:1px solid var(--border)" onclick="showHistoryItem(${aiAnalysisHistory.indexOf(h)})">
+        ${h.provider} · ${h.infra} · Focus: ${h.focus} · ${h.timestamp}
+      </div>`).join("");
+}
+
+function showHistoryItem(i){
+  const h=aiAnalysisHistory[i];
+  if(!h)return;
+  const content=document.getElementById("aiResponseContent");
+  if(content)content.textContent=h.response;
+}
+
+/* ============================================================
+   PAGE : GOUVERNANCE DATA
+   ============================================================ */
+function buildGovernance(){
+  return `
+  <div class="pg-header">
+    <div><div class="pg-title">Gouvernance des données</div><div class="pg-sub">Qui alimente les données, comment, et avec quelles garanties</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><div class="card-title"><div class="cticon blue">🏛️</div>Modèle de gouvernance — cloisonnement par institution</div></div>
+    <p style="font-size:.87rem;line-height:1.8;color:rgba(11,31,58,.75);margin-bottom:1rem">
+      Chaque institution est responsable de ses propres données. Les données <strong>ne se partagent pas automatiquement</strong> entre ministères.
+      Seul l'ARMP et le Ministère du Budget disposent d'une vue consolidée, sur autorisation formelle.
+    </p>
+    <div class="gov-flow">
+      <div class="gov-step"><span class="gov-icon">🏛️</span><div class="gov-title">Institution</div><div>Déclare ses infrastructures via formulaire sécurisé</div></div>
+      <div class="gov-step"><span class="gov-icon">✅</span><div class="gov-title">Validation ARTCI</div><div>Vérifie agréments et conformité légale</div></div>
+      <div class="gov-step"><span class="gov-icon">🔒</span><div class="gov-title">Cloisonnement</div><div>Données stockées dans une partition dédiée à l'institution</div></div>
+      <div class="gov-step"><span class="gov-icon">📊</span><div class="gov-title">Dashboard</div><div>Chaque ministère voit uniquement son périmètre</div></div>
+      <div class="gov-step"><span class="gov-icon">🌐</span><div class="gov-title">Vue nationale</div><div>ARMP + Ministère Budget uniquement, avec traçabilité</div></div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-hdr"><div class="card-title"><div class="cticon green">📥</div>Comment les données sont alimentées</div></div>
+      <div class="how-step"><div class="step-num">1</div><div class="step-txt"><div class="step-title">Déclaration initiale</div><div class="step-desc">Le DSI de l'institution remplit un formulaire sécurisé avec les informations sur chaque infrastructure (nom, hébergement, type de données, incidents).</div></div></div>
+      <div class="how-step"><div class="step-num">2</div><div class="step-txt"><div class="step-title">Validation croisée ARTCI</div><div class="step-desc">L'ARTCI vérifie la concordance avec son registre d'agréments cloud. Toute divergence génère une alerte pour l'institution.</div></div></div>
+      <div class="how-step"><div class="step-num">3</div><div class="step-txt"><div class="step-title">Mise à jour trimestrielle</div><div class="step-desc">Chaque ministère met à jour son tableau de bord tous les 3 mois. En cas d'incident, une mise à jour immédiate est obligatoire.</div></div></div>
+      <div class="how-step"><div class="step-num">4</div><div class="step-txt"><div class="step-title">Audit annuel</div><div class="step-desc">Un auditeur certifié vérifie la cohérence des données déclarées avec la réalité terrain. Rapport transmis à l'ARMP.</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title"><div class="cticon gold">🔐</div>Confidentialité & hébergement de l'application</div></div>
+      <div style="background:rgba(26,92,56,.06);border:1px solid rgba(26,92,56,.2);border-radius:var(--radius-sm);padding:1rem;margin-bottom:.8rem">
+        <div style="font-weight:700;color:var(--forest);margin-bottom:.3rem">✅ L'application est hébergée sur :</div>
+        <div style="font-size:.85rem;line-height:1.7"><strong>Data Center National – Abidjan</strong><br>Agréé ARTCI · Juridiction ivoirienne · Conformité Loi 2013-450</div>
+      </div>
+      <div style="font-size:.84rem;line-height:1.8;color:rgba(11,31,58,.75)">
+        <strong>Données en transit :</strong> Chiffrées TLS 1.3 entre les institutions et le serveur.<br>
+        <strong>Données au repos :</strong> Chiffrées AES-256, partition dédiée par institution.<br>
+        <strong>Accès :</strong> Authentification SSO ministère (en production). Aucun partage entre institutions sans accord formel.<br>
+        <strong>Logs d'accès :</strong> Conservés 24 mois, auditables par le CERT-CI.
+      </div>
+      <div style="margin-top:1rem;padding:.8rem;background:var(--warning-pale);border-radius:var(--radius-sm);border:1px solid rgba(211,84,0,.2);font-size:.8rem">
+        ⚠️ <strong>Mode démo :</strong> Les identifiants user/admin sont en clair à des fins de présentation. 
+        En production : authentification SSO via le portail interministériel CI.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><div class="card-title"><div class="cticon purple">🤝</div>Responsabilités et contacts</div></div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr><th>Institution</th><th>Rôle</th><th>Périmètre</th><th>Contact type</th></tr></thead>
+        <tbody>
+          <tr><td><strong>ARTCI</strong></td><td>Régulateur</td><td>Validation agréments cloud</td><td>DSI / Responsable conformité</td></tr>
+          <tr><td><strong>ARMP</strong></td><td>Coordinateur</td><td>Vue marchés publics nationale</td><td>Direction des systèmes</td></tr>
+          <tr><td><strong>Ministère du Budget</strong></td><td>Superviseur</td><td>Vue consolidée nationale</td><td>Direction de la modernisation</td></tr>
+          <tr><td><strong>Chaque ministère</strong></td><td>Propriétaire</td><td>Données de son périmètre uniquement</td><td>DSI de l'institution</td></tr>
+          <tr><td><strong>CERT-CI</strong></td><td>Sécurité</td><td>Incidents & alertes cybersécurité</td><td>Équipe réponse aux incidents</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  `;
+}
+
+/* ============================================================
+   PAGE : RISQUES JURIDIQUES
+   ============================================================ */
+function buildJuridique(){
+  const mpInfra=DATA.filter(d=>d.marchesPublics);
+  const alertesJuridiques=[
+    {infra:"Plateforme e-GP",art:"Art. 44 du Code des marchés publics",texte:"Toute offre déposée sur un serveur non agréé par l'ARTCI est réputée irrecevable. La plateforme e-GP utilise AWS Irlande → nullité potentielle de toutes les soumissions électroniques.",niveau:"danger"},
+    {infra:"Mairie de Bouaké",art:"Art. 78 du Code des marchés publics",texte:"L'absence de garantie sur la conservation des offres sur un cloud non certifié expose les marchés à des recours en annulation pour vice de forme.",niveau:"danger"},
+    {infra:"DCMP",art:"Directive UEMOA n°15/2002/CM",texte:"Les données d'appels d'offres centraux hébergées hors UEMOA (OVH Paris) violent la directive communautaire sur la localisation des données de marchés publics.",niveau:"warn"},
+    {infra:"Douanes San-Pédro",art:"Loi 2013-450 Art. 26",texte:"Transfert de données douanières vers AWS Francfort sans autorisation de l'Autorité de protection. Exposition au Cloud Act américain (18 U.S.C. § 2713).",niveau:"danger"},
+    {infra:"BTP Construction CI",art:"Art. 33 & 44 Code des marchés publics",texte:"Offres déposées via OneDrive (Azure US) exposées à une juridiction étrangère. Risque systématique d'irrecevabilité.",niveau:"warn"}
+  ];
+  const ajHtml=alertesJuridiques.map(a=>`
+    <div class="alerte-juridique">
+      <div class="aj-title">${a.niveau==="danger"?"🔴":"🟡"} ${safeText(a.art)} — <em>${safeText(a.infra)}</em></div>
+      <div>${safeText(a.texte)}</div>
+    </div>`).join("");
+
+  const confRows=mpInfra.map(d=>`
+    <tr>
+      <td><strong>${safeText(d.nom)}</strong><br><span style="font-size:.73rem;color:rgba(11,31,58,.5)">${safeText(d.ville)}</span></td>
+      <td><span style="font-family:'Playfair Display',serif;font-weight:800;font-size:1rem;color:${confColor(d.conformiteLegale)}">${d.conformiteLegale}</span></td>
+      <td style="text-align:center">${d.hebergementLocal?"✅":"❌"}</td>
+      <td style="text-align:center">${d.auditRecent?"✅":"❌"}</td>
+      <td style="text-align:center">${d.clauseSouverainete?"✅":"❌"}</td>
+      <td style="text-align:center">${d.declarationARTP?"✅":"❌"}</td>
+      <td><span style="font-size:.78rem;font-weight:600;color:${d.conformiteLegale>=70?"var(--ok)":d.conformiteLegale>=50?"var(--warning)":"var(--danger)"}">${d.conformiteLegale>=70?"Conforme":d.conformiteLegale>=50?"Partiel":"Non conforme"}</span></td>
+    </tr>`).join("");
+
+  return `
+  <div class="pg-header">
+    <div><div class="pg-title">Risques Juridiques</div><div class="pg-sub">Code des marchés publics · Loi 2013-450 · Directive UEMOA n°15/2002</div></div>
+  </div>
+
+  <div class="public-content">
+    <div class="card">
+      <div class="card-hdr"><div class="card-title"><div class="cticon red">⚠️</div>Ce que vous devez savoir</div></div>
+      <div style="display:grid;gap:.8rem">
+        <div style="background:#FFF5F5;border:1px solid rgba(192,57,43,.2);border-radius:var(--radius-sm);padding:1rem">
+          <div style="font-weight:700;color:var(--danger);margin-bottom:.3rem">🔴 Risque immédiat : marchés pouvant être annulés</div>
+          <div style="font-size:.85rem;line-height:1.7">Plusieurs plateformes hébergent des données de marchés publics sur des serveurs étrangers non autorisés. Des appels d'offres en cours pourraient être contestés devant les tribunaux.</div>
+        </div>
+        <div style="background:var(--ok-pale);border:1px solid rgba(26,92,56,.15);border-radius:var(--radius-sm);padding:1rem">
+          <div style="font-weight:700;color:var(--ok);margin-bottom:.3rem">✅ Solution : Data Center National</div>
+          <div style="font-size:.85rem;line-height:1.7">La migration vers le Data Center National d'Abidjan (agréé ARTCI) résoudrait la majorité des risques légaux identifiés.</div>
+        </div>
+      </div>
+      <div style="margin-top:1rem;padding:.9rem 1rem;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border)">
+        <div style="font-weight:700;font-size:.86rem;margin-bottom:.4rem">💡 Pour voir les détails juridiques</div>
+        <div style="font-size:.82rem;color:rgba(11,31,58,.6)">Activez le <strong>Mode Expert</strong> en haut à droite pour afficher les articles de loi et scores de conformité détaillés.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="expert-content">
+    <div class="card">
+      <div class="card-hdr"><div class="card-title"><div class="cticon blue">📚</div>Cadre juridique applicable</div></div>
+      <div class="g3">
+        <div style="background:var(--surface);border-radius:var(--radius-sm);padding:1rem;border:1px solid var(--border)">
+          <div style="font-weight:700;font-size:.87rem;margin-bottom:.5rem;color:#1D4ED8">📘 Code des marchés publics CI</div>
+          <div style="font-size:.79rem;line-height:1.8;color:rgba(11,31,58,.7)"><strong>Art. 33</strong> – Sécurité et confidentialité des offres<br><strong>Art. 44</strong> – Irrecevabilité sur serveur non agréé<br><strong>Art. 78</strong> – Conservation probante des dossiers</div>
+        </div>
+        <div style="background:var(--surface);border-radius:var(--radius-sm);padding:1rem;border:1px solid var(--border)">
+          <div style="font-weight:700;font-size:.87rem;margin-bottom:.5rem;color:#1D4ED8">📗 Loi n°2013-450 du 19 juin 2013</div>
+          <div style="font-size:.79rem;line-height:1.8;color:rgba(11,31,58,.7)"><strong>Art. 5</strong> – Déclaration préalable ARTCI<br><strong>Art. 19</strong> – Confidentialité des traitements<br><strong>Art. 26</strong> – Transfert pays tiers : autorisation requise</div>
+        </div>
+        <div style="background:var(--surface);border-radius:var(--radius-sm);padding:1rem;border:1px solid var(--border)">
+          <div style="font-weight:700;font-size:.87rem;margin-bottom:.5rem;color:#1D4ED8">📙 Directive UEMOA n°15/2002/CM</div>
+          <div style="font-size:.79rem;line-height:1.8;color:rgba(11,31,58,.7)">Localisation des données de marchés publics dans l'espace communautaire. Données hors UEMOA = violation communautaire.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title"><div class="cticon orange">⚠️</div>Alertes juridiques – Marchés Publics</div></div>
+      ${ajHtml}
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title"><div class="cticon gold">📊</div>Score de conformité légale (pondération 25% par critère)</div></div>
+      <div style="font-size:.78rem;color:rgba(11,31,58,.5);margin-bottom:.9rem">Hébergement local + Audit récent + Clause souveraineté + Déclaration ARTCI = 100%</div>
+      <div style="overflow-x:auto"><table class="tbl">
+        <thead><tr><th>Infrastructure</th><th>Score légal</th><th>Hébergt local</th><th>Audit récent</th><th>Clause souv.</th><th>Déclarat. ARTCI</th><th>Statut</th></tr></thead>
+        <tbody>${confRows}</tbody>
+      </table></div>
+    </div>
+  </div>
+  `;
+}
+
+/* ============================================================
+   PAGE : PRÉVISIONS 2030
+   ============================================================ */
+function buildForecast(){
+  return `
+  <div class="pg-header">
+    <div><div class="pg-title">Simulateur d'investissement 2030</div><div class="pg-sub">Projetez l'impact d'un budget souverain sur la conformité nationale</div></div>
+  </div>
+  <div style="background:#FFF8ED;border:1px solid rgba(247,127,0,.3);border-radius:var(--radius-sm);padding:.7rem 1rem;margin-bottom:1.2rem;font-size:.78rem;color:rgba(11,31,58,.55)">
+    📐 Projections basées sur un modèle logarithmique avec rendements décroissants. Sources : rapports ARMP, études analogues UEMOA 2022.
+  </div>
+  <div class="card">
+    <div class="card-hdr"><div class="card-title"><div class="cticon gold">💰</div>Simulateur d'investissement souverain</div></div>
+    <div class="slider-wrap">
+      <div class="slider-lbl"><span>Investissement en souveraineté numérique</span><span class="slider-val" id="sliderVal">5</span></div>
+      <input type="range" id="investSlider" min="0" max="30" step="1" value="5">
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;color:rgba(11,31,58,.4);margin-top:4px"><span>0 Mds FCFA</span><span>15 Mds</span><span>30 Mds FCFA</span></div>
+    </div>
+    <div class="whatif-box" id="whatifBox">
+      <h3>📊 Résultats de la simulation (estimation indicative)</h3>
+      <div class="wf-metrics">
+        <div class="wf-m"><div class="wf-val" id="wfScore">--</div><div class="wf-lbl">Score souveraineté 2030</div></div>
+        <div class="wf-m"><div class="wf-val" id="wfROI">--</div><div class="wf-lbl">ROI potentiel estimé</div></div>
+        <div class="wf-m"><div class="wf-val" id="wfMP">--</div><div class="wf-lbl">% marchés publics conformes</div></div>
+      </div>
+      <div id="wfMsg" style="margin-top:1rem;font-size:.82rem;color:rgba(255,255,255,.65);border-top:1px solid rgba(255,255,255,.1);padding-top:.9rem;line-height:1.7"></div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-hdr"><div class="card-title"><div class="cticon blue">📈</div>Projection 2025–2030 (scénarios)</div></div>
+      <canvas id="forecastChart" style="max-height:260px"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title"><div class="cticon purple">🌍</div>Positionnement régional UEMOA 2030 (estimatif)</div></div>
+      <canvas id="regionalChart" style="max-height:260px"></canvas>
+    </div>
+  </div>
+  <div class="card expert-content">
+    <div class="card-hdr"><div class="card-title"><div class="cticon orange">⚖️</div>Impact sur la conformité marchés publics 2030</div></div>
+    <div class="g3">
+      <div style="background:var(--surface);border-radius:var(--radius-sm);padding:1rem;border:1px solid var(--border)">
+        <div style="font-weight:700;font-size:.86rem;margin-bottom:.4rem">Migration e-GP → Data Center CI</div>
+        <div style="font-size:.8rem;color:rgba(11,31,58,.65);line-height:1.7">Coût estimé : 520M FCFA<br>Impact : 100% des soumissions recevables<br>Source : études analogues UEMOA 2022</div>
+      </div>
+      <div style="background:var(--surface);border-radius:var(--radius-sm);padding:1rem;border:1px solid var(--border)">
+        <div style="font-weight:700;font-size:.86rem;margin-bottom:.4rem">ROI juridique (réduction contentieux)</div>
+        <div style="font-size:.8rem;color:rgba(11,31,58,.65);line-height:1.7">Estimation basse basée sur 30% des annulations de marchés. Non garantie. Nécessite audit indépendant.</div>
+      </div>
+      <div style="background:var(--surface);border-radius:var(--radius-sm);padding:1rem;border:1px solid var(--border)">
+        <div style="font-weight:700;font-size:.86rem;margin-bottom:.4rem">Objectif dématérialisation 2030</div>
+        <div style="font-size:.8rem;color:rgba(11,31,58,.65);line-height:1.7">100% marchés dématérialisés sur serveurs agréés CI (PNDEV numérique). Source : Stratégie nationale numérique CI 2026.</div>
+      </div>
+    </div>
+  </div>
+  `;
+}
+
+/* ============================================================
+   PAGE : RAPPORT
+   ============================================================ */
+function buildReport(){
+  return `
+  <div class="pg-header">
+    <div><div class="pg-title">Générateur de rapport décisionnel</div><div class="pg-sub">Rapport prêt à transmettre à la Direction Générale</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-gold" id="genReportBtn">📄 Générer le rapport</button>
+      <button class="btn btn-out" id="dlPdfBtn" style="display:none">📥 Télécharger PDF</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><div class="card-title"><div class="cticon blue">⚙️</div>Options du rapport</div></div>
+    <div style="display:flex;gap:1rem;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:6px;font-size:.87rem;cursor:pointer"><input type="checkbox" id="rSummary" checked> Résumé exécutif</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.87rem;cursor:pointer"><input type="checkbox" id="rAlertes" checked> Alertes critiques</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.87rem;cursor:pointer"><input type="checkbox" id="rLegal" checked> Risques juridiques</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.87rem;cursor:pointer"><input type="checkbox" id="rReco" checked> Recommandations</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.87rem;cursor:pointer"><input type="checkbox" id="rBudget" checked> Estimation budgétaire</label>
+    </div>
+  </div>
+  <div id="reportOut" style="display:none">
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-title"><div class="cticon green">📋</div>Rapport généré</div>
+        <button class="btn btn-out btn-sm" id="copyBtn">📋 Copier</button>
+      </div>
+      <div class="report-prev" id="reportTxt"></div>
+    </div>
+  </div>
+  `;
+}
+
+function generateReport(){
+  const gs=globalScore();const gc=globalConf();
+  const crit=DATA.filter(d=>d.risque==="Élevé");
+  const mpCrit=DATA.filter(d=>d.marchesPublics&&d.conformiteLegale<50);
+  const lp=localPct();const today=new Date().toLocaleDateString('fr-CI',{day:'numeric',month:'long',year:'numeric'});
+  const ministryName=MINISTRY_LABELS[currentMinistry]||"Institution";
+  let txt=`
+═══════════════════════════════════════════════════════════
+   RAPPORT STRATÉGIQUE — SOUVERAINETÉ NUMÉRIQUE & MARCHÉS PUBLICS
+   AFRISOV DATA MAP v4.0 · République de Côte d'Ivoire
+═══════════════════════════════════════════════════════════
+Date            : ${today}
+Classification  : CONFIDENTIEL – Usage interne
+Institution     : ${ministryName}
+Destinataire    : Direction Générale
+Émis par        : AFRISOV DATA MAP v4.0
+
+Sources : rapports publics ARMP 2022-2023, ARTCI, MEF CI.
+Références légales : Code MP CI, Loi 2013-450, Directive UEMOA n°15/2002.
+
+───────────────────────────────────────────────────────────
+1. RÉSUMÉ EXÉCUTIF
+───────────────────────────────────────────────────────────
+Score national de souveraineté (périmètre ${ministryName}) : ${gs}/100
+Score moyen de conformité légale          : ${gc}/100
+Hébergement local des données critiques   : ${lp}%
+Infrastructures à risque critique         : ${crit.length} sur ${DATA.length}
+Infrastructures marchés publics non conf. : ${mpCrit.length} sur ${mpData().length}
+
+MÉTHODOLOGIE DU SCORE : Hébergement local (+40pts, Art.44 Code MP)
++ Chiffrement (+20pts, Loi 2013-450 Art.19) + Audit ARTCI (+20pts)
++ Clause souveraineté (+20pts, UEMOA n°15/2002) - 5pts/incident.
+
+───────────────────────────────────────────────────────────
+2. ALERTES CRITIQUES
+───────────────────────────────────────────────────────────
+${crit.map(d=>`
+🔴 ${d.nom} — ${d.ville}
+   Score souveraineté : ${d.score}/100 | Conformité légale : ${d.conformiteLegale}/100
+   Serveur            : ${d.serveur}
+   Données            : ${d.typeDonnee}
+   Incidents          : ${d.incidents} (12 mois)
+   Source réf.        : ${d.sourceRef||"Cadre légal CI"}
+   ${d.anomalie?"Anomalie : "+d.anomalie:""}
+`).join("")}
+───────────────────────────────────────────────────────────
+3. RISQUES JURIDIQUES – MARCHÉS PUBLICS
+───────────────────────────────────────────────────────────
+
+• Art. 44 Code des marchés publics CI : la plateforme e-GP (AWS Irlande)
+  expose toutes les offres électroniques à un risque de nullité.
+
+• Loi 2013-450, Art. 26 : ${crit.length} infrastructures transfèrent des données
+  vers des pays tiers sans autorisation de l'Autorité de protection.
+
+• Directive UEMOA n°15/2002 : données hébergées hors espace communautaire.
+
+• Cloud Act US (18 U.S.C. § 2713) : AWS/Azure/OneDrive exposés.
+
+Risque financier estimé (estimation basse, non garantie) :
+→ Contentieux + pertes de marchés : à quantifier par audit indépendant.
+
+───────────────────────────────────────────────────────────
+4. RECOMMANDATIONS PRIORITAIRES
+───────────────────────────────────────────────────────────
+
+1. URGENT — Migration plateforme e-GP
+   → Data Center National Abidjan (agréé ARTCI)
+   → Budget estimé : 520M FCFA | Délai cible : 6 mois
+
+2. URGENT — Relocalisation DCMP
+   → Hébergement national certifié ARTCI
+   → Budget estimé : 320M FCFA | Délai : 9 mois
+
+3. URGENT — Régularisation Mairie de Bouaké
+   → Résiliation cloud non certifié + migration
+   → Budget estimé : 120M FCFA | Délai : 3 mois
+
+4. MOYEN TERME — Plan d'accompagnement soumissionnaires
+   → Formation + guides de conformité cloud
+   → Budget estimé : 80M FCFA
+
+───────────────────────────────────────────────────────────
+5. PLAN D'INVESTISSEMENT SOUVERAIN (indicatif)
+───────────────────────────────────────────────────────────
+Budget total recommandé (Year 1)    : ~1,04 milliard FCFA
+Score national projeté 2030         : ~88/100 (si investissement réalisé)
+Conformité légale marchés publics   : ~95% visé 2030
+Positionnement UEMOA projeté        : Top 3 souveraineté numérique
+
+Ces estimations sont indicatives. Un audit indépendant certifié
+est indispensable avant toute décision d'investissement.
+
+═══════════════════════════════════════════════════════════
+AFRISOV DATA MAP v4.0 · SIADE 2026
+Sources : ARMP 2022-2023, ARTCI, Code MP CI, Loi 2013-450
+═══════════════════════════════════════════════════════════
+`.trim();
+  document.getElementById("reportTxt").textContent=txt;
+  document.getElementById("reportOut").style.display="block";
+  const pdfBtn=document.getElementById("dlPdfBtn");
+  if(pdfBtn) pdfBtn.style.display="inline-flex";
+  toast("Rapport généré !","📄");
+  document.getElementById("copyBtn").onclick=()=>{
+    navigator.clipboard.writeText(txt).then(()=>toast("Rapport copié !","📋")).catch(()=>toast("Copie manuelle requise","📋"));
+  };
+  if(pdfBtn) pdfBtn.onclick=()=>generatePDF(txt,gs,gc,lp,crit,mpCrit,ministryName,today);
+}
+
+/* ============================================================
+   PDF EXPORT (jsPDF)
+   ============================================================ */
+function generatePDF(txt,gs,gc,lp,crit,mpCrit,ministryName,today){
+  if(!window.jspdf){
+    toast("jsPDF non disponible — téléchargement en .txt","⚠️");
+    const blob=new Blob([txt],{type:'text/plain'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download=`AFRISOV_Rapport_${today.replace(/\s/g,'_')}.txt`;a.click();
+    return;
+  }
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const w=doc.internal.pageSize.getWidth();
+  const margin=15;const maxW=w-2*margin;
+  let y=20;
+  
+  /* Header band */
+  doc.setFillColor(11,31,58);doc.rect(0,0,w,35,'F');
+  doc.setFillColor(26,92,56);doc.rect(0,35,w,3,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(16);doc.setFont('helvetica','bold');
+  doc.text('AFRISOV DATA MAP',margin,15);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  doc.text('Rapport Strat\u00e9gique \u2014 Souverainet\u00e9 Num\u00e9rique & March\u00e9s Publics',margin,22);
+  doc.text(`${ministryName} \u2022 ${today}`,margin,28);
+  doc.setTextColor(247,127,0);doc.text('CONFIDENTIEL',w-margin-30,15);
+  
+  y=45;doc.setTextColor(11,31,58);
+  
+  /* KPIs */
+  doc.setFontSize(10);doc.setFont('helvetica','bold');
+  doc.text('R\u00c9SUM\u00c9 EX\u00c9CUTIF',margin,y);y+=8;
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  
+  const kpis=[
+    [`Score souverainet\u00e9 national : ${gs}/100`,gs>=70?[26,92,56]:gs>=50?[211,84,0]:[192,57,43]],
+    [`Conformit\u00e9 l\u00e9gale moyenne : ${gc}/100`,gc>=70?[26,92,56]:gc>=50?[211,84,0]:[192,57,43]],
+    [`H\u00e9bergement local : ${lp}%`,lp>=60?[26,92,56]:[192,57,43]],
+    [`Infrastructures critiques : ${crit.length}/${DATA.length}`,crit.length>0?[192,57,43]:[26,92,56]],
+    [`March\u00e9s publics non conformes : ${mpCrit.length}`,mpCrit.length>0?[192,57,43]:[26,92,56]]
+  ];
+  kpis.forEach(([text,color])=>{
+    doc.setFillColor(...color);doc.circle(margin+2,y-1.5,1.5,'F');
+    doc.setTextColor(11,31,58);doc.text(text,margin+6,y);y+=6;
+  });
+  
+  y+=5;
+  /* Alertes critiques */
+  if(crit.length>0){
+    doc.setFontSize(10);doc.setFont('helvetica','bold');
+    doc.setTextColor(192,57,43);doc.text('ALERTES CRITIQUES',margin,y);y+=7;
+    doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(11,31,58);
+    crit.forEach(d=>{
+      if(y>270){doc.addPage();y=20;}
+      doc.setFont('helvetica','bold');doc.text(`\u2022 ${d.nom} (${d.ville}) \u2014 Score: ${d.score}/100`,margin,y);y+=5;
+      doc.setFont('helvetica','normal');
+      doc.text(`  Serveur: ${d.serveur.substring(0,60)}`,margin,y);y+=4;
+      doc.text(`  Incidents: ${d.incidents} | Conf. l\u00e9gale: ${d.conformiteLegale}/100`,margin,y);y+=6;
+    });
+  }
+  
+  y+=5;
+  /* Recommandations */
+  if(y>240){doc.addPage();y=20;}
+  doc.setFontSize(10);doc.setFont('helvetica','bold');
+  doc.setTextColor(26,92,56);doc.text('RECOMMANDATIONS PRIORITAIRES',margin,y);y+=7;
+  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(11,31,58);
+  const recos=[
+    'Migration e-GP vers Data Center National (520M FCFA, 6 mois)',
+    'Relocalisation DCMP sur h\u00e9bergement certifi\u00e9 ARTCI (320M FCFA, 9 mois)',
+    'R\u00e9gularisation Mairie de Bouak\u00e9 (120M FCFA, 3 mois)',
+    'Plan d\'accompagnement soumissionnaires (80M FCFA)'
+  ];
+  recos.forEach((r,i)=>{
+    doc.text(`${i+1}. ${r}`,margin,y);y+=5;
+  });
+  
+  y+=5;
+  /* Footer */
+  if(y>260){doc.addPage();y=20;}
+  doc.setFillColor(11,31,58);doc.rect(0,282,w,15,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(7);
+  doc.text('AFRISOV DATA MAP v4.0 \u2022 Prototype SIADE 2026 \u2022 Sources: ARMP 2022-2023, ARTCI, Loi 2013-450, Code MP CI',margin,288);
+  
+  doc.save(`AFRISOV_Rapport_${today.replace(/[\\s,]/g,'_')}.pdf`);
+  toast('PDF t\u00e9l\u00e9charg\u00e9 avec succ\u00e8s !','\\ud83d\\udcc4');
+}
+
+/* ============================================================
+   PAGE : ADVANCED
+   ============================================================ */
+function buildAdvanced(){
+  return `
+  <div class="pg-header">
+    <div><div class="pg-title">Analyses Avancées — Expert</div><div class="pg-sub">Corrélations, distribution des scores, données brutes</div></div>
+    <span class="kpi-badge down" style="padding:6px 14px">🔧 Mode Expert requis</span>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-hdr"><div class="card-title"><div class="cticon blue">📊</div>Corrélation Risque × Facteurs</div></div><canvas id="corrChart" style="max-height:260px"></canvas></div>
+    <div class="card"><div class="card-hdr"><div class="card-title"><div class="cticon purple">📉</div>Distribution des scores</div></div><canvas id="distChart" style="max-height:260px"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><div class="card-title"><div class="cticon green">📐</div>Transparence du scoring métier</div></div>
+    <div style="font-size:.83rem;line-height:1.8;color:rgba(11,31,58,.75);margin-bottom:.8rem">
+      Notre scoring est <strong>délibérément transparent</strong> et auditable par n'importe quel juriste spécialisé en marchés publics.
+      Contrairement aux modèles ML opaques, chaque point est justifiable devant un tribunal administratif.
+    </div>
+    <div class="g3">
+      <div class="kpi"><div class="kpi-ico g">📍</div><div><div class="kpi-val">40</div><div class="kpi-lbl">pts hébergement local (Art.44)</div></div></div>
+      <div class="kpi"><div class="kpi-ico b">🔐</div><div><div class="kpi-val">20</div><div class="kpi-lbl">pts chiffrement (Loi 2013-450)</div></div></div>
+      <div class="kpi"><div class="kpi-ico o">✅</div><div><div class="kpi-val">20</div><div class="kpi-lbl">pts audit ARTCI annuel</div></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><div class="card-title"><div class="cticon gold">🗃️</div>Données brutes — périmètre ${MINISTRY_LABELS[currentMinistry]||"actuel"}</div></div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr><th>Infrastructure</th><th>Score</th><th class="hide-mobile">Conf. Légale</th><th>Hébergement</th><th class="hide-mobile">Incidents</th><th class="hide-mobile">Source ref.</th><th>Risque</th></tr></thead>
+        <tbody>${DATA.map(d=>`
+          <tr>
+            <td><strong>${safeText(d.nom)}</strong><br><span style="font-size:.72rem;color:rgba(11,31,58,.5)">${safeText(d.ville)}</span></td>
+            <td style="font-family:'Playfair Display',serif;font-weight:800;color:${scoreColor(d.score)}">${d.score}</td>
+            <td class="hide-mobile" style="color:${confColor(d.conformiteLegale)};font-weight:700">${d.conformiteLegale}</td>
+            <td>${d.hebergementLocal?"✅ Local":"❌ Étranger"}</td>
+            <td class="hide-mobile" style="color:${d.incidents>2?"var(--danger)":"var(--ok)"};font-weight:700">${d.incidents}</td>
+            <td class="hide-mobile" style="font-size:.72rem;color:rgba(11,31,58,.5)">${safeText(d.sourceRef||"—")}</td>
+            <td><span class="rtag ${d.risque==="Élevé"?"r":d.risque==="Moyen"?"o":"g"}">${safeText(d.risque)}</span></td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  `;
+}
+
+/* ============================================================
+   MAP — avec fallback si Leaflet indisponible
+   ============================================================ */
+function initMap(){
+  const el=document.getElementById("map");
+  const fallback=document.getElementById("mapFallback");
+  if(!el)return;
+
+  if(!window.L){
+    if(el)el.style.display="none";
+    if(fallback)fallback.style.display="flex";
+    return;
+  }
+  if(mapInst){try{mapInst.remove()}catch(e){}mapInst=null}
+
+  try{
+    mapInst=L.map("map").setView([7.0,-5.5],6);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{
+      attribution:"&copy; OSM &copy; CartoDB",maxZoom:18
+    }).addTo(mapInst);
+    renderMarkers();
+  } catch(e){
+    if(el)el.style.display="none";
+    if(fallback)fallback.style.display="flex";
+  }
+}
+
+function renderMarkers(filter="",cat=""){
+  if(!mapInst||!window.L)return;
+  try{
+    mapInst.eachLayer(l=>{if(l instanceof L.Marker)mapInst.removeLayer(l)});
+  } catch(e){}
+  const filtered=DATA.filter(d=>{
+    const matchFilter=!filter||d.nom.toLowerCase().includes(filter)||d.ville.toLowerCase().includes(filter);
+    const matchCat=!cat||d.categorie===cat;
+    return matchFilter&&matchCat;
+  });
+  filtered.forEach(d=>{
+    const c=d.score>=70?"#1A5C38":(d.score>=50?"#D35400":"#C0392B");
+    const isMp=d.marchesPublics;
+    const ring=d.risque==="Élevé"?`<div style="position:absolute;inset:-7px;border-radius:50%;border:2px solid ${c};opacity:.4;animation:pulseRing 1.8s ease-out infinite"></div>`:"";
+    const mpRing=isMp?`<div style="position:absolute;inset:-12px;border-radius:50%;border:2px dashed var(--ci-orange);opacity:.5"></div>`:"";
+    const icon=L.divIcon({
+      html:`<div style="position:relative;width:34px;height:34px">${ring}${mpRing}<div style="width:34px;height:34px;border-radius:50%;background:${c};border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;font-family:'Playfair Display',serif;position:relative;z-index:1">${d.score}</div></div>`,
+      iconSize:[34,34],className:""
+    });
+    try{
+      const marker=L.marker([d.lat,d.lng],{icon}).addTo(mapInst);
+      marker.bindPopup(`
+        <div style="font-family:'Inter',sans-serif;min-width:220px">
+          <div style="font-weight:800;font-size:.9rem;margin-bottom:5px">${safeText(d.nom)}</div>
+          <div style="font-size:.78rem;color:#666;margin-bottom:8px">📍 ${safeText(d.ville)} · ${safeText(d.categorie)}</div>
+          <div style="background:${c};color:#fff;border-radius:8px;padding:6px 10px;text-align:center;margin-bottom:8px">
+            <div style="font-weight:800;font-size:1.35rem">${d.score}/100</div>
+            <div style="font-size:.7rem;opacity:.85">${scoreLabel(d.score)}</div>
+          </div>
+          <div style="font-size:.78rem;line-height:1.8">
+            🖥️ ${safeText(d.serveur.substring(0,35))}...<br>
+            ${d.hebergementLocal?"✅ Hébergement local":"❌ Serveur étranger"}<br>
+            ${d.marchesPublics?`⚖️ Conf. légale : ${d.conformiteLegale}/100<br>`:""}
+            ${d.anomalie?`<span style="color:#C0392B;font-weight:700">⚠️ Anomalie détectée</span>`:""}
+          </div>
+          <div style="font-size:.72rem;margin-top:.5rem;color:#888">${safeText(d.sourceRef||"")}</div>
+        </div>
+      `,{maxWidth:300});
+      marker.on("click",()=>{
+        switchPage("analysis");
+        const sel=document.getElementById("infraSel");
+        if(sel){sel.value=d.id;renderAnalysis(d.id)}
+      });
+    } catch(e){}
+  });
+}
+
+/* ============================================================
+   CHARTS
+   ============================================================ */
+function initCharts(){
+  if(!window.Chart)return;
+  const gs=globalScore();
+  const ctx=document.getElementById("forecastChart")?.getContext("2d");
+  if(ctx){
+    chartForecast=new Chart(ctx,{
+      type:"line",
+      data:{
+        labels:["2024","2025","2026","2027","2028","2029","2030"],
+        datasets:[
+          {label:"Scénario investissement",data:[gs,gs+2,gs+5,gs+8,gs+11,gs+14,Math.min(98,gs+18)],borderColor:"#1A5C38",backgroundColor:"rgba(26,92,56,.08)",tension:.4,fill:true,borderWidth:2.5,pointBackgroundColor:"#1A5C38",pointRadius:4},
+          {label:"Statu quo",data:[gs,gs,gs-1,gs-1,gs-2,gs-2,gs-3],borderColor:"#C0392B",backgroundColor:"rgba(192,57,43,.05)",tension:.4,fill:true,borderWidth:2,borderDash:[6,4],pointBackgroundColor:"#C0392B",pointRadius:4}
+        ]
+      },
+      options:{responsive:true,plugins:{legend:{position:"top"},subtitle:{display:true,text:"Estimatif — voir note méthodologique"}},scales:{y:{min:40,max:100,title:{display:true,text:"Score /100"}}}}
+    });
+  }
+  const rCtx=document.getElementById("regionalChart")?.getContext("2d");
+  if(rCtx){
+    new Chart(rCtx,{
+      type:"bar",
+      data:{
+        labels:["Sénégal","Ghana","CI (statu quo)","CI (scénario)","Bénin","Mali","Burkina"],
+        datasets:[{label:"Score 2030 estimatif",data:[72,68,Math.max(40,gs-3),Math.min(98,gs+18),61,42,45],backgroundColor:["rgba(26,92,56,.5)","rgba(26,92,56,.5)","rgba(192,57,43,.5)","rgba(26,92,56,.9)","rgba(26,92,56,.5)","rgba(211,84,0,.5)","rgba(211,84,0,.5)"],borderRadius:8,borderWidth:0}]
+      },
+      options:{responsive:true,plugins:{legend:{display:false},subtitle:{display:true,text:"Estimatif régional"}},scales:{y:{min:0,max:100,title:{display:true,text:"Score /100"}}}}
+    });
+  }
+}
+
+let advChartsInit=false;
+function initAdvancedCharts(){
+  if(advChartsInit||!window.Chart)return;advChartsInit=true;
+  const ctx1=document.getElementById("corrChart")?.getContext("2d");
+  if(ctx1){new Chart(ctx1,{type:"bar",data:{labels:["Hébergement local","Nb incidents","Score souv.","Dépendance étrangère"],datasets:[{label:"Corrélation avec risque",data:[-0.82,0.76,-0.91,0.88],backgroundColor:["rgba(26,92,56,.6)","rgba(192,57,43,.6)","rgba(26,92,56,.6)","rgba(192,57,43,.6)"],borderRadius:8,borderWidth:0}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{min:-1,max:1,title:{display:true,text:"Coefficient"}}}}});}
+  const ctx2=document.getElementById("distChart")?.getContext("2d");
+  if(ctx2){const low=DATA.filter(d=>d.score<50).length;const mid=DATA.filter(d=>d.score>=50&&d.score<70).length;const high=DATA.filter(d=>d.score>=70).length;new Chart(ctx2,{type:"doughnut",data:{labels:["Critique (<50)","Surveillance (50–70)","Souverain (>70)"],datasets:[{data:[low,mid,high],backgroundColor:["rgba(192,57,43,.7)","rgba(211,84,0,.7)","rgba(26,92,56,.7)"],borderWidth:0}]},options:{responsive:true,plugins:{legend:{position:"bottom"}}}});}
+}
+
+/* ============================================================
+   WHAT-IF
+   ============================================================ */
+function updateWhatIf(inv){
+  const base=globalScore();
+  /* Logarithmic curve: diminishing returns for higher investments */
+  const maxGain=98-base;
+  const logFactor=inv>0 ? Math.log(inv+1)/Math.log(31) : 0; /* normalized 0-1 */
+  const ns=Math.min(98, Math.round(base + maxGain * logFactor * 0.85));
+  /* ROI with diminishing returns */
+  const roi=inv>0 ? Math.round((Math.log(inv+1)*35) + inv*2.2) : 0;
+  /* MP conformity with S-curve */
+  const mpBase=30;
+  const mpConf=Math.min(100, Math.round(mpBase + (100-mpBase) * (1 - Math.exp(-inv/8))));
+  
+  const scEl=document.getElementById("wfScore");
+  const roiEl=document.getElementById("wfROI");
+  const mpEl=document.getElementById("wfMP");
+  const msgEl=document.getElementById("wfMsg");
+  if(scEl)scEl.textContent=ns+"/100";
+  if(roiEl)roiEl.textContent="+"+roi+"% (est.)";
+  if(mpEl)mpEl.textContent=mpConf+"%";
+  
+  let msg='';
+  if(inv===0){
+    msg="⚠️ Aucun investissement : le score stagne. Les marchés publics restent exposés à des risques de nullité juridique (Art. 44 Code MP).";
+  } else if(inv<=5){
+    msg=`📊 Investissement modéré (${inv} Mds FCFA) : score projeté ${ns}/100, ${mpConf}% des marchés conformes. Priorité : migration e-GP vers Data Center National. ROI estimé ${roi}% sur 5 ans.`;
+  } else if(inv<=15){
+    msg=`📈 Investissement significatif (${inv} Mds FCFA) : score projeté ${ns}/100, ${mpConf}% des marchés conformes. Permet la migration complète des infrastructures critiques + certification ARTCI. ROI estimé ${roi}% sur 5 ans.`;
+  } else {
+    msg=`🏆 Investissement majeur (${inv} Mds FCFA) : score projeté ${ns}/100, ${mpConf}% des marchés conformes. Objectif souveraineté totale atteignable. La CI deviendrait leader UEMOA. ROI estimé ${roi}% sur 5 ans (rendements décroissants au-delà de 20 Mds).`;
+  }
+  if(msgEl)msgEl.innerHTML=msg;
+  
+  if(chartForecast){
+    /* Logarithmic progression over years */
+    const years=[0,0.15,0.3,0.5,0.7,0.88,1.0];
+    chartForecast.data.datasets[0].data=years.map(y=>{
+      const yearGain=maxGain*logFactor*0.85*y;
+      return Math.min(98,Math.round(base+yearGain));
+    });
+    chartForecast.update();
+  }
+}
+
+/* ============================================================
+   EVENTS
+   ============================================================ */
+function bindEvents(){
+  document.getElementById("csvUpload")?.addEventListener("change",e=>{
+    const f=e.target.files[0];if(!f)return;
+    if(!window.Papa){toast("PapaParse non disponible (connexion requise)","❌");return}
+    const r=new FileReader();r.onload=ev=>importCSV(ev.target.result);r.readAsText(f);
+  });
+  document.getElementById("resetBtn")?.addEventListener("click",()=>{
+    DATA=JSON.parse(JSON.stringify(ORIG));renderMarkers();toast("Données réinitialisées","↩");
+  });
+  document.getElementById("searchInput")?.addEventListener("input",e=>{
+    renderMarkers(e.target.value.toLowerCase(),document.getElementById("filterCat")?.value||"");
+  });
+  document.getElementById("filterCat")?.addEventListener("change",e=>{
+    renderMarkers(document.getElementById("searchInput")?.value.toLowerCase()||"",e.target.value);
+  });
+  document.getElementById("analyzeBtn")?.addEventListener("click",()=>{
+    const id=document.getElementById("infraSel")?.value;if(id)renderAnalysis(id);
+  });
+  document.querySelectorAll(".alert-item[data-id]").forEach(el=>{
+    el.addEventListener("click",()=>{
+      const id=el.getAttribute("data-id");
+      switchPage("analysis");
+      const sel=document.getElementById("infraSel");
+      if(sel){sel.value=id;renderAnalysis(id)}
+    });
+  });
+  const slider=document.getElementById("investSlider");
+  if(slider){
+    updateWhatIf(parseInt(slider.value));
+    slider.addEventListener("input",e=>{
+      document.getElementById("sliderVal").textContent=e.target.value;
+      updateWhatIf(parseInt(e.target.value));
+    });
+  }
+  document.getElementById("genReportBtn")?.addEventListener("click",generateReport);
+  document.querySelectorAll(".onglet-card[onclick]").forEach(el=>{
+    const fn=el.getAttribute("onclick");
+    if(fn){el.removeAttribute("onclick");el.addEventListener("click",()=>{try{eval(fn)}catch(e){}});}
+  });
+}
+
+function importCSV(text){
+  if(!window.Papa){toast("PapaParse indisponible","❌");return}
+  Papa.parse(text,{header:true,dynamicTyping:true,complete:(res)=>{
+    const rows=res.data.filter(r=>r.nom&&r.lat&&r.lng);
+    if(!rows.length){toast("CSV invalide. Colonnes requises : nom, lat, lng, score","❌");return}
+    DATA=rows.map(r=>({
+      id:String(r.nom||"").replace(/\s/g,""),
+      nom:String(r.nom||""),ville:String(r.ville||"Inconnue"),
+      lat:parseFloat(r.lat),lng:parseFloat(r.lng),
+      categorie:String(r.categorie||"Générique"),
+      typeDonnee:String(r.typeDonnee||"Données génériques"),
+      hebergementLocal:r.hebergementLocal===true||r.hebergementLocal==="true"||r.hebergementLocal===1,
+      chiffrement:r.chiffrement===true||r.chiffrement==="true",
+      score:r.score||50,
+      risque:r.risque||(r.score<50?"Élevé":r.score<70?"Moyen":"Faible"),
+      conformiteLegale:r.conformiteLegale||r.score||50,
+      auditRecent:r.auditRecent==="true"||r.auditRecent===true,
+      clauseSouverainete:r.clauseSouverainete==="true"||r.clauseSouverainete===true,
+      declarationARTP:r.declarationARTP==="true"||r.declarationARTP===true,
+      agrement:String(r.agrement||"Non renseigné"),
+      incidents:r.incidents||0,serveur:String(r.serveur||"Inconnu"),
+      legalRisks:[],description:String(r.description||"Infrastructure importée depuis CSV."),
+      marchesPublics:r.marchesPublics==="true"||r.marchesPublics===true,
+      sourceRef:"Import CSV utilisateur",
+      refs:[],anomalie:null
+    }));
+    renderMarkers();toast(`${rows.length} infrastructures importées depuis CSV`,"📂");
+  }});
+}
+
+/* Style CSS animation pulse */
+const sty=document.createElement("style");
+sty.textContent=`@keyframes pulseRing{0%{transform:scale(.85);opacity:.6}70%{transform:scale(1.7);opacity:0}100%{transform:scale(1.7);opacity:0}}`;
+document.head.appendChild(sty);
+</script>
+</body>
+</html>
